@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     libncurses5-dev \
     libncursesw5-dev \
+    libcurl4-openssl-dev \
     # AWS CLI
     awscli \
     # Python for additional scripting
