@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  bioinformatics:
+    build: .
+    environment:
+      # Tool configuration
+      TOOL_NAME: samtools
+      COMMAND: view
+      OUTPUT_FORMAT: bam
+      OUTPUT_FILE: converted.bam
+      
+      # AWS configuration (use your local AWS credentials)
+      S3_BUCKET: ${S3_BUCKET:-smarts-files}
+      INPUT_S3_KEY: ${INPUT_S3_KEY:-test-data/input/sample.sam}
+      OUTPUT_PATH: ${OUTPUT_PATH:-test-data/output/}
+      
+      # AWS credentials (these should be set in your environment)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      
+      # Process identification
+      PROCESS_ID: local-test-$(shell date +%s)
+    
+    volumes:
+      # Mount local test data for development
+      - ./test-data:/tmp/local-data:ro
+    
+    # Override entrypoint for debugging
+    # entrypoint: ["/bin/bash", "-c", "sleep 3600"]
