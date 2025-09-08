@@ -60,8 +60,42 @@ case "$TOOL_NAME" in
     "samtools")
         /usr/local/bin/scripts/samtools-handler.sh
         ;;
+    "bwa")
+        /usr/local/bin/scripts/bwa-handler.sh
+        ;;
+    "bowtie2")
+        /usr/local/bin/scripts/bowtie2-handler.sh
+        ;;
+    "bedtools")
+        /usr/local/bin/scripts/bedtools-handler.sh
+        ;;
+    "fastqc")
+        /usr/local/bin/scripts/fastqc-handler.sh
+        ;;
+    "trimmomatic")
+        /usr/local/bin/scripts/trimmomatic-handler.sh
+        ;;
+    "picard")
+        /usr/local/bin/scripts/picard-handler.sh
+        ;;
+    "vcftools")
+        /usr/local/bin/scripts/vcftools-handler.sh
+        ;;
+    "fmlrc")
+        /usr/local/bin/scripts/fmlrc-handler.sh
+        ;;
+    "homer")
+        /usr/local/bin/scripts/homer-handler.sh
+        ;;
+    "annovar")
+        /usr/local/bin/scripts/annovar-handler.sh
+        ;;
+    "genomicranges")
+        /usr/local/bin/scripts/genomicranges-handler.sh
+        ;;
     *)
         echo "❌ Unsupported tool: $TOOL_NAME"
+        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges"
         exit 1
         ;;
 esac

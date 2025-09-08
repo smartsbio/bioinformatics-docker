@@ -154,9 +154,156 @@ case "$COMMAND" in
         fi
         ;;
         
+    "flagstat")
+        echo "📊 Running SAMtools flagstat command..."
+        
+        SAMTOOLS_CMD="samtools flagstat $INPUT_FILE_PATH"
+        
+        echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/flagstat.txt"
+        
+        if eval "$SAMTOOLS_CMD > /tmp/output/flagstat.txt"; then
+            echo "✅ SAMtools flagstat completed successfully"
+            
+            # Show summary
+            echo "📈 Alignment statistics:"
+            cat "/tmp/output/flagstat.txt"
+        else
+            echo "❌ SAMtools flagstat failed"
+            exit 1
+        fi
+        ;;
+        
+    "depth")
+        echo "📏 Running SAMtools depth command..."
+        
+        SAMTOOLS_CMD="samtools depth"
+        
+        # Add region if specified
+        if [[ -n "$REGION" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD -r $REGION"
+        fi
+        
+        SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH"
+        
+        echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/depth.txt"
+        
+        if eval "$SAMTOOLS_CMD > /tmp/output/depth.txt"; then
+            echo "✅ SAMtools depth completed successfully"
+            
+            # Show sample of depth data
+            echo "📊 Depth data sample:"
+            head -20 "/tmp/output/depth.txt" | tail -10
+        else
+            echo "❌ SAMtools depth failed"
+            exit 1
+        fi
+        ;;
+        
+    "merge")
+        echo "🔗 Running SAMtools merge command..."
+        
+        # For merge, we'd typically need multiple input files
+        # This is a simplified version
+        SAMTOOLS_CMD="samtools merge"
+        
+        # Add threads parameter
+        if [[ -n "$THREADS" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD --threads $THREADS"
+        fi
+        
+        # Add compression level
+        if [[ -n "$COMPRESSION_LEVEL" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD -l $COMPRESSION_LEVEL"
+        fi
+        
+        SAMTOOLS_CMD="$SAMTOOLS_CMD /tmp/output/$OUTPUT_FILE $INPUT_FILE_PATH"
+        
+        echo "🚀 Executing: $SAMTOOLS_CMD"
+        
+        if eval "$SAMTOOLS_CMD"; then
+            echo "✅ SAMtools merge completed successfully"
+        else
+            echo "❌ SAMtools merge failed"
+            exit 1
+        fi
+        ;;
+        
+    "idxstats")
+        echo "📊 Running SAMtools idxstats command..."
+        
+        SAMTOOLS_CMD="samtools idxstats $INPUT_FILE_PATH"
+        
+        echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/idxstats.txt"
+        
+        if eval "$SAMTOOLS_CMD > /tmp/output/idxstats.txt"; then
+            echo "✅ SAMtools idxstats completed successfully"
+            
+            # Show index statistics
+            echo "📈 Index statistics:"
+            cat "/tmp/output/idxstats.txt"
+        else
+            echo "❌ SAMtools idxstats failed"
+            exit 1
+        fi
+        ;;
+        
+    "coverage")
+        echo "📊 Running SAMtools coverage command..."
+        
+        SAMTOOLS_CMD="samtools coverage"
+        
+        # Add region if specified
+        if [[ -n "$REGION" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD -r $REGION"
+        fi
+        
+        SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH"
+        
+        echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/coverage.txt"
+        
+        if eval "$SAMTOOLS_CMD > /tmp/output/coverage.txt"; then
+            echo "✅ SAMtools coverage completed successfully"
+            
+            # Show coverage summary
+            echo "📊 Coverage summary:"
+            head -10 "/tmp/output/coverage.txt"
+        else
+            echo "❌ SAMtools coverage failed"
+            exit 1
+        fi
+        ;;
+        
+    "tview")
+        echo "👁️ Running SAMtools tview command (text viewer)..."
+        
+        SAMTOOLS_CMD="samtools tview"
+        
+        # Add reference genome if available
+        if [[ -n "$REFERENCE_GENOME" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH $REFERENCE_GENOME"
+        else
+            SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH"
+        fi
+        
+        # For non-interactive use, capture a region
+        if [[ -n "$REGION" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD -p $REGION"
+        fi
+        
+        echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/tview.txt"
+        
+        # Note: tview is interactive, this captures limited output
+        if timeout 5 eval "$SAMTOOLS_CMD > /tmp/output/tview.txt 2>&1" || [[ $? -eq 124 ]]; then
+            echo "✅ SAMtools tview completed (non-interactive mode)"
+        else
+            echo "❌ SAMtools tview failed"
+            exit 1
+        fi
+        ;;
+        
     *)
         echo "❌ Unsupported SAMtools command: $COMMAND"
-        echo "Supported commands: view, sort, index, stats"
+        echo "Supported commands: view, sort, index, stats, flagstat, depth, merge, idxstats, coverage, tview"
         exit 1
         ;;
 esac
