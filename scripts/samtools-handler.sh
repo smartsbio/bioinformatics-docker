@@ -56,7 +56,7 @@ case "$COMMAND" in
             echo "✅ SAMtools view completed successfully"
             
             # Display output file info
-            OUTPUT_SIZE=$(stat -f%z "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
+            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
             echo "📊 Output file: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
         else
             echo "❌ SAMtools view failed"
