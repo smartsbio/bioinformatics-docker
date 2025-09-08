@@ -39,7 +39,7 @@ if [[ -n "$INPUT_S3_KEY" ]]; then
     INPUT_FILENAME=$(basename "$INPUT_S3_KEY")
     echo "📥 Downloading: s3://$S3_BUCKET/$INPUT_S3_KEY -> /tmp/input/$INPUT_FILENAME"
     
-    if ! aws s3 cp "s3://$S3_BUCKET/$INPUT_S3_KEY" "/tmp/input/$INPUT_FILENAME"; then
+    if ! aws s3 cp "s3://$S3_BUCKET/$INPUT_S3_KEY" "/tmp/input/$INPUT_FILENAME" --no-progress; then
         echo "❌ Failed to download input file from S3"
         exit 1
     fi
@@ -77,7 +77,7 @@ if [[ -d "/tmp/output" ]] && [[ -n "$(ls -A /tmp/output)" ]]; then
             
             echo "📤 Uploading: $file -> s3://$S3_BUCKET/$s3_output_key"
             
-            if ! aws s3 cp "$file" "s3://$S3_BUCKET/$s3_output_key"; then
+            if ! aws s3 cp "$file" "s3://$S3_BUCKET/$s3_output_key" --no-progress; then
                 echo "❌ Failed to upload $filename to S3"
                 exit 1
             fi
