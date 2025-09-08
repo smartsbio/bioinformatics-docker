@@ -22,6 +22,11 @@ echo "🎯 SAMtools command: $COMMAND"
 # Parse additional parameters from environment
 OUTPUT_FORMAT=${OUTPUT_FORMAT:-"bam"}
 OUTPUT_FILE=${OUTPUT_FILE:-"output.${OUTPUT_FORMAT}"}
+THREADS=${THREADS:-"4"}
+COMPRESSION_LEVEL=${COMPRESSION_LEVEL:-"6"}
+REGION=${REGION:-""}
+FLAGS=${FLAGS:-""}
+REFERENCE_GENOME=${REFERENCE_GENOME:-""}
 
 case "$COMMAND" in
     "view")
@@ -30,15 +35,27 @@ case "$COMMAND" in
         # Build SAMtools view command based on output format
         SAMTOOLS_CMD="samtools view"
         
+        # Add threads parameter
+        if [[ -n "$THREADS" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD --threads $THREADS"
+        fi
+        
+        # Add compression level for BAM/CRAM
         case "$OUTPUT_FORMAT" in
             "bam")
                 SAMTOOLS_CMD="$SAMTOOLS_CMD -b"
+                if [[ -n "$COMPRESSION_LEVEL" ]]; then
+                    SAMTOOLS_CMD="$SAMTOOLS_CMD -l $COMPRESSION_LEVEL"
+                fi
                 ;;
             "sam")
                 SAMTOOLS_CMD="$SAMTOOLS_CMD -h"
                 ;;
             "cram")
                 SAMTOOLS_CMD="$SAMTOOLS_CMD -C"
+                if [[ -n "$REFERENCE_GENOME" ]]; then
+                    SAMTOOLS_CMD="$SAMTOOLS_CMD -T $REFERENCE_GENOME"
+                fi
                 ;;
             *)
                 echo "⚠️ Unknown output format: $OUTPUT_FORMAT, defaulting to SAM"
@@ -46,8 +63,17 @@ case "$COMMAND" in
                 ;;
         esac
         
-        # Add input file and redirect output
-        SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH"
+        # Add region if specified
+        if [[ -n "$REGION" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH $REGION"
+        else
+            SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH"
+        fi
+        
+        # Add any additional flags
+        if [[ -n "$FLAGS" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD $FLAGS"
+        fi
         
         echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
         
@@ -67,7 +93,19 @@ case "$COMMAND" in
     "sort")
         echo "🔄 Running SAMtools sort command..."
         
-        SAMTOOLS_CMD="samtools sort $INPUT_FILE_PATH -o /tmp/output/$OUTPUT_FILE"
+        SAMTOOLS_CMD="samtools sort"
+        
+        # Add threads parameter
+        if [[ -n "$THREADS" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD --threads $THREADS"
+        fi
+        
+        # Add compression level
+        if [[ -n "$COMPRESSION_LEVEL" ]]; then
+            SAMTOOLS_CMD="$SAMTOOLS_CMD -l $COMPRESSION_LEVEL"
+        fi
+        
+        SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH -o /tmp/output/$OUTPUT_FILE"
         
         echo "🚀 Executing: $SAMTOOLS_CMD"
         
