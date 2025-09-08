@@ -60,10 +60,18 @@ jobs:
       if: github.event_name != 'pull_request'
       run: |
         echo "Making package public..."
+        # Wait a few seconds for package to be fully created
+        sleep 10
+        # Try different API endpoints to make package public
+        gh api --method PATCH \
+          -H "Accept: application/vnd.github.v3+json" \
+          /user/packages/container/bioinformatics-docker \
+          --field visibility=public || \
         gh api --method PATCH \
           -H "Accept: application/vnd.github.v3+json" \
           /orgs/smartsbio/packages/container/bioinformatics-docker \
-          --field visibility=public || echo "Package may already be public or permissions issue"
+          --field visibility=public || \
+        echo "Could not make package public automatically - please make it public manually at: https://github.com/orgs/smartsbio/packages/container/package/bioinformatics-docker"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

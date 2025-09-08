@@ -41,8 +41,8 @@ case "$COMMAND" in
                 SAMTOOLS_CMD="$SAMTOOLS_CMD -C"
                 ;;
             *)
-                echo "⚠️ Unknown output format: $OUTPUT_FORMAT, defaulting to BAM"
-                SAMTOOLS_CMD="$SAMTOOLS_CMD -b"
+                echo "⚠️ Unknown output format: $OUTPUT_FORMAT, defaulting to SAM"
+                SAMTOOLS_CMD="$SAMTOOLS_CMD -h"
                 ;;
         esac
         
