@@ -107,7 +107,9 @@ if [[ -d "/tmp/output" ]] && [[ -n "$(ls -A /tmp/output)" ]]; then
     for file in /tmp/output/*; do
         if [[ -f "$file" ]]; then
             filename=$(basename "$file")
-            s3_output_key="${OUTPUT_PATH}${filename}"
+            # Ensure OUTPUT_PATH ends with / before concatenating filename
+            OUTPUT_PATH_NORMALIZED="${OUTPUT_PATH%/}/"  # Remove trailing / if exists, then add it back
+            s3_output_key="${OUTPUT_PATH_NORMALIZED}${filename}"
             
             echo "📤 Uploading: $file -> s3://$S3_BUCKET/$s3_output_key"
             

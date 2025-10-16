@@ -41,7 +41,9 @@ case "$COMMAND" in
         fi
         
         # Add compression level for BAM/CRAM
-        case "$OUTPUT_FORMAT" in
+        # Convert OUTPUT_FORMAT to lowercase for case-insensitive matching
+        OUTPUT_FORMAT_LOWER=$(echo "$OUTPUT_FORMAT" | tr '[:upper:]' '[:lower:]')
+        case "$OUTPUT_FORMAT_LOWER" in
             "bam")
                 SAMTOOLS_CMD="$SAMTOOLS_CMD -b"
                 if [[ -n "$COMPRESSION_LEVEL" ]]; then
