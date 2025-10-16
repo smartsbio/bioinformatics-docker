@@ -71,6 +71,8 @@ RUN cd /tmp && \
     wget https://github.com/lh3/bwa/releases/download/v${BWA_VERSION}/bwa-${BWA_VERSION}.tar.bz2 && \
     tar -xjf bwa-${BWA_VERSION}.tar.bz2 && \
     cd bwa-${BWA_VERSION} && \
+    # BWA requires specific compiler flags for modern systems
+    sed -i 's/CFLAGS=/CFLAGS=-fcommon /' Makefile && \
     make && \
     cp bwa /usr/local/bin/ && \
     cd / && \
