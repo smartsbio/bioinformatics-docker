@@ -102,6 +102,9 @@ esac
 
 echo "📤 Uploading output files to S3..."
 
+# Array to collect file metadata for JSON output
+declare -a uploaded_files=()
+
 # Upload all files from output directory to S3
 if [[ -d "/tmp/output" ]] && [[ -n "$(ls -A /tmp/output)" ]]; then
     for file in /tmp/output/*; do
@@ -110,15 +113,22 @@ if [[ -d "/tmp/output" ]] && [[ -n "$(ls -A /tmp/output)" ]]; then
             # Ensure OUTPUT_PATH ends with / before concatenating filename
             OUTPUT_PATH_NORMALIZED="${OUTPUT_PATH%/}/"  # Remove trailing / if exists, then add it back
             s3_output_key="${OUTPUT_PATH_NORMALIZED}${filename}"
-            
+
             echo "📤 Uploading: $file -> s3://$S3_BUCKET/$s3_output_key"
-            
+
+            # Get file size and checksum before upload
+            file_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
+            file_md5=$(md5sum "$file" 2>/dev/null | awk '{print $1}' || md5 -q "$file" 2>/dev/null || echo "unknown")
+
             if ! aws s3 cp "$file" "s3://$S3_BUCKET/$s3_output_key" --no-progress; then
                 echo "❌ Failed to upload $filename to S3"
                 exit 1
             fi
-            
-            echo "✅ Uploaded: $filename"
+
+            echo "✅ Uploaded: $filename (${file_size} bytes)"
+
+            # Collect file metadata for JSON output
+            uploaded_files+=("{\"filename\":\"$filename\",\"s3Key\":\"$s3_output_key\",\"s3Bucket\":\"$S3_BUCKET\",\"size\":$file_size,\"checksum\":\"$file_md5\"}")
         fi
     done
 else
@@ -128,3 +138,16 @@ fi
 
 echo "🎉 Process completed successfully at $(date)"
 echo "📊 Output files uploaded to: s3://$S3_BUCKET/$OUTPUT_PATH"
+
+# Output structured JSON for Process Manager to parse
+# This special marker helps Process Manager identify the JSON output
+echo "===SMARTS_BIO_OUTPUT_FILES_JSON_START==="
+echo -n "["
+for i in "${!uploaded_files[@]}"; do
+    echo -n "${uploaded_files[$i]}"
+    if [ $i -lt $((${#uploaded_files[@]} - 1)) ]; then
+        echo -n ","
+    fi
+done
+echo "]"
+echo "===SMARTS_BIO_OUTPUT_FILES_JSON_END==="
