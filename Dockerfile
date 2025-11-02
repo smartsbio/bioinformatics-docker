@@ -14,6 +14,12 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     jq \
+    # Compression utilities
+    gzip \
+    bzip2 \
+    xz-utils \
+    zip \
+    p7zip-full \
     # Build tools for compiling bioinformatics software
     build-essential \
     cmake \
@@ -207,7 +213,12 @@ RUN samtools --version && \
     java --version && \
     perl --version | head -n 1 && \
     R --version | head -n 1 && \
-    echo "✅ All 12 bioinformatics tools installed successfully"
+    gzip --version | head -n 1 && \
+    bzip2 --version 2>&1 | head -n 1 && \
+    xz --version | head -n 1 && \
+    zip --version | head -n 2 && \
+    7z | head -n 2 && \
+    echo "✅ All 12 bioinformatics tools and compression utilities installed successfully"
 
 # Set working directory
 WORKDIR /tmp

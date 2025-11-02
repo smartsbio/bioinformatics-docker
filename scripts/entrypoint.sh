@@ -93,9 +93,12 @@ case "$TOOL_NAME" in
     "genomicranges")
         /usr/local/bin/scripts/genomicranges-handler.sh
         ;;
+    "zip")
+        /usr/local/bin/scripts/zip-handler.sh
+        ;;
     *)
         echo "❌ Unsupported tool: $TOOL_NAME"
-        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges"
+        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip"
         exit 1
         ;;
 esac
