@@ -108,32 +108,38 @@ echo "📤 Uploading output files to S3..."
 # Array to collect file metadata for JSON output
 declare -a uploaded_files=()
 
-# Upload all files from output directory to S3
+# Upload all files from output directory to S3 (recursively to preserve folder structure)
 if [[ -d "/tmp/output" ]] && [[ -n "$(ls -A /tmp/output)" ]]; then
-    for file in /tmp/output/*; do
-        if [[ -f "$file" ]]; then
-            filename=$(basename "$file")
-            # Ensure OUTPUT_PATH ends with / before concatenating filename
-            OUTPUT_PATH_NORMALIZED="${OUTPUT_PATH%/}/"  # Remove trailing / if exists, then add it back
-            s3_output_key="${OUTPUT_PATH_NORMALIZED}${filename}"
+    # Ensure OUTPUT_PATH ends with /
+    OUTPUT_PATH_NORMALIZED="${OUTPUT_PATH%/}/"
 
-            echo "📤 Uploading: $file -> s3://$S3_BUCKET/$s3_output_key"
+    # Use aws s3 sync to upload entire directory structure recursively
+    echo "📤 Syncing output directory to s3://$S3_BUCKET/$OUTPUT_PATH_NORMALIZED"
 
-            # Get file size and checksum before upload
-            file_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
-            file_md5=$(md5sum "$file" 2>/dev/null | awk '{print $1}' || md5 -q "$file" 2>/dev/null || echo "unknown")
+    if ! aws s3 sync /tmp/output/ "s3://$S3_BUCKET/$OUTPUT_PATH_NORMALIZED" --no-progress; then
+        echo "❌ Failed to sync output files to S3"
+        exit 1
+    fi
 
-            if ! aws s3 cp "$file" "s3://$S3_BUCKET/$s3_output_key" --no-progress; then
-                echo "❌ Failed to upload $filename to S3"
-                exit 1
-            fi
+    echo "✅ Output directory synced successfully"
 
-            echo "✅ Uploaded: $filename (${file_size} bytes)"
+    # Now collect metadata for all uploaded files (including nested)
+    while IFS= read -r -d '' file; do
+        # Get relative path from /tmp/output/
+        relative_path="${file#/tmp/output/}"
 
-            # Collect file metadata for JSON output
-            uploaded_files+=("{\"filename\":\"$filename\",\"s3Key\":\"$s3_output_key\",\"s3Bucket\":\"$S3_BUCKET\",\"size\":$file_size,\"checksum\":\"$file_md5\"}")
-        fi
-    done
+        # Build S3 key
+        s3_output_key="${OUTPUT_PATH_NORMALIZED}${relative_path}"
+
+        # Get file size and checksum
+        file_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
+        file_md5=$(md5sum "$file" 2>/dev/null | awk '{print $1}' || md5 -q "$file" 2>/dev/null || echo "unknown")
+
+        echo "📊 Processed: $relative_path (${file_size} bytes)"
+
+        # Collect file metadata for JSON output
+        uploaded_files+=("{\"filename\":\"$relative_path\",\"s3Key\":\"$s3_output_key\",\"s3Bucket\":\"$S3_BUCKET\",\"size\":$file_size,\"checksum\":\"$file_md5\"}")
+    done < <(find /tmp/output -type f -print0)
 else
     echo "❌ No output files found to upload"
     exit 1

@@ -332,9 +332,41 @@ case "$COMMAND" in
 
         COMPRESSION_TYPE_LOWER=$(echo "$COMPRESSION_TYPE" | tr '[:upper:]' '[:lower:]')
 
+        # Helper function to organize extracted files
+        # If archive contains single file/folder at root -> extract directly
+        # If archive contains multiple files/folders at root -> create containing folder
+        organize_extracted_files() {
+            local archive_name="$1"
+
+            # Get base name without extension
+            local base_name="${archive_name%%.*}"
+
+            # Count items at root level of /tmp/extract
+            local item_count=$(ls -A /tmp/extract | wc -l)
+
+            echo "📊 Archive contains $item_count top-level item(s)"
+
+            if [[ $item_count -eq 1 ]]; then
+                # Single item - move directly to /tmp/output
+                echo "📦 Single item detected - extracting to root level"
+                mv /tmp/extract/* /tmp/output/
+            else
+                # Multiple items - create containing folder with archive name
+                echo "📦 Multiple items detected - creating containing folder: $base_name"
+                mkdir -p "/tmp/output/$base_name"
+                mv /tmp/extract/* "/tmp/output/$base_name/"
+            fi
+
+            # Clean up temp extraction directory
+            rm -rf /tmp/extract
+        }
+
         case "$COMPRESSION_TYPE_LOWER" in
             "zip")
                 echo "🚀 Extracting ZIP archive"
+
+                # Extract to temporary directory first
+                mkdir -p /tmp/extract
 
                 UNZIP_CMD="unzip"
 
@@ -346,13 +378,14 @@ case "$COMMAND" in
                 # Overwrite files without prompting
                 UNZIP_CMD="$UNZIP_CMD -o"
 
-                UNZIP_CMD="$UNZIP_CMD \"$INPUT_FILE\" -d /tmp/output"
+                UNZIP_CMD="$UNZIP_CMD \"$INPUT_FILE\" -d /tmp/extract"
 
-                echo "🚀 Executing: unzip [options] \"$INPUT_FILENAME\" -d /tmp/output"
+                echo "🚀 Executing: unzip [options] \"$INPUT_FILENAME\" -d /tmp/extract"
 
                 if eval "$UNZIP_CMD"; then
                     echo "✅ ZIP extraction completed successfully"
-                    echo "📁 Extracted files:"
+                    organize_extracted_files "$INPUT_FILENAME"
+                    echo "📁 Final output:"
                     ls -lah /tmp/output/
                 else
                     echo "❌ ZIP extraction failed"
@@ -417,6 +450,9 @@ case "$COMMAND" in
             "7z"|"7zip")
                 echo "🚀 Extracting 7-Zip archive"
 
+                # Extract to temporary directory first
+                mkdir -p /tmp/extract
+
                 SEVENZ_CMD="7z x"
 
                 # Add password if specified
@@ -425,7 +461,7 @@ case "$COMMAND" in
                 fi
 
                 # Output to directory
-                SEVENZ_CMD="$SEVENZ_CMD -o/tmp/output"
+                SEVENZ_CMD="$SEVENZ_CMD -o/tmp/extract"
 
                 # Assume yes on all queries
                 SEVENZ_CMD="$SEVENZ_CMD -y"
@@ -436,7 +472,8 @@ case "$COMMAND" in
 
                 if eval "$SEVENZ_CMD"; then
                     echo "✅ 7-Zip extraction completed successfully"
-                    echo "📁 Extracted files:"
+                    organize_extracted_files "$INPUT_FILENAME"
+                    echo "📁 Final output:"
                     ls -lah /tmp/output/
                 else
                     echo "❌ 7-Zip extraction failed"
@@ -447,11 +484,15 @@ case "$COMMAND" in
             "tar.gz"|"tgz")
                 echo "🚀 Extracting TAR.GZ archive"
 
-                TAR_CMD="tar -xzf \"$INPUT_FILE\" -C /tmp/output"
+                # Extract to temporary directory first
+                mkdir -p /tmp/extract
+
+                TAR_CMD="tar -xzf \"$INPUT_FILE\" -C /tmp/extract"
 
                 if eval "$TAR_CMD"; then
                     echo "✅ TAR.GZ extraction completed successfully"
-                    echo "📁 Extracted files:"
+                    organize_extracted_files "$INPUT_FILENAME"
+                    echo "📁 Final output:"
                     ls -lah /tmp/output/
                 else
                     echo "❌ TAR.GZ extraction failed"
@@ -462,11 +503,15 @@ case "$COMMAND" in
             "tar.bz2"|"tbz2")
                 echo "🚀 Extracting TAR.BZ2 archive"
 
-                TAR_CMD="tar -xjf \"$INPUT_FILE\" -C /tmp/output"
+                # Extract to temporary directory first
+                mkdir -p /tmp/extract
+
+                TAR_CMD="tar -xjf \"$INPUT_FILE\" -C /tmp/extract"
 
                 if eval "$TAR_CMD"; then
                     echo "✅ TAR.BZ2 extraction completed successfully"
-                    echo "📁 Extracted files:"
+                    organize_extracted_files "$INPUT_FILENAME"
+                    echo "📁 Final output:"
                     ls -lah /tmp/output/
                 else
                     echo "❌ TAR.BZ2 extraction failed"
@@ -477,11 +522,15 @@ case "$COMMAND" in
             "tar.xz"|"txz")
                 echo "🚀 Extracting TAR.XZ archive"
 
-                TAR_CMD="tar -xJf \"$INPUT_FILE\" -C /tmp/output"
+                # Extract to temporary directory first
+                mkdir -p /tmp/extract
+
+                TAR_CMD="tar -xJf \"$INPUT_FILE\" -C /tmp/extract"
 
                 if eval "$TAR_CMD"; then
                     echo "✅ TAR.XZ extraction completed successfully"
-                    echo "📁 Extracted files:"
+                    organize_extracted_files "$INPUT_FILENAME"
+                    echo "📁 Final output:"
                     ls -lah /tmp/output/
                 else
                     echo "❌ TAR.XZ extraction failed"
