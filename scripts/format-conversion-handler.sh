@@ -559,7 +559,7 @@ convert_bed_to_gff3() {
     }' "$input_file" >> "$output_file"
 
     if [ $? -eq 0 ]; then
-        local count=$(grep -v "^#" "$output_file") | wc -l)
+        local count=$(grep -v "^#" "$output_file" | wc -l)
         echo "✅ GFF3 file created ($count features)"
     else
         echo "❌ Conversion failed"
