@@ -96,9 +96,12 @@ case "$TOOL_NAME" in
     "zip")
         /usr/local/bin/scripts/zip-handler.sh
         ;;
+    "format-conversion")
+        /usr/local/bin/scripts/format-conversion-handler.sh
+        ;;
     *)
         echo "❌ Unsupported tool: $TOOL_NAME"
-        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip"
+        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip, format-conversion"
         exit 1
         ;;
 esac

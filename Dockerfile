@@ -135,8 +135,31 @@ RUN cd /tmp && \
     chmod +x /usr/local/bin/picard && \
     rm -f picard.jar
 
-# Install VCFtools
-RUN apt-get update && apt-get install -y vcftools && rm -rf /var/lib/apt/lists/*
+# Install VCFtools and BCFtools
+RUN apt-get update && apt-get install -y vcftools bcftools && rm -rf /var/lib/apt/lists/*
+
+# Install BioPython (for GenBank, EMBL, AB1 format support)
+RUN pip3 install --no-cache-dir biopython==1.81
+
+# Install seqtk (fast FASTA/FASTQ manipulation)
+ENV SEQTK_VERSION=1.4
+RUN cd /tmp && \
+    wget https://github.com/lh3/seqtk/archive/v${SEQTK_VERSION}.tar.gz && \
+    tar -xzf v${SEQTK_VERSION}.tar.gz && \
+    cd seqtk-${SEQTK_VERSION} && \
+    make && \
+    cp seqtk /usr/local/bin/ && \
+    cd / && \
+    rm -rf /tmp/seqtk-*
+
+# Install gffread (GFF/GTF format conversion)
+ENV GFFREAD_VERSION=0.12.7
+RUN cd /tmp && \
+    wget https://github.com/gpertea/gffread/releases/download/v${GFFREAD_VERSION}/gffread-${GFFREAD_VERSION}.Linux_x86_64.tar.gz && \
+    tar -xzf gffread-${GFFREAD_VERSION}.Linux_x86_64.tar.gz && \
+    cp gffread-${GFFREAD_VERSION}.Linux_x86_64/gffread /usr/local/bin/ && \
+    cd / && \
+    rm -rf /tmp/gffread-*
 
 # Install FMLRC (Long-read error correction) - Make optional to avoid build failures
 ENV FMLRC_VERSION=1.0.0
@@ -205,6 +228,10 @@ RUN samtools --version && \
     trimmomatic -version 2>&1 | head -n 1 && \
     picard -h 2>&1 | head -n 3 && \
     vcftools --version && \
+    bcftools --version | head -n 1 && \
+    seqtk 2>&1 | head -n 3 && \
+    gffread --version && \
+    python3 -c "import Bio; print(f'BioPython {Bio.__version__}')" && \
     fmlrc --version 2>/dev/null || echo "FMLRC installed" && \
     findMotifsGenome.pl 2>&1 | head -n 1 || echo "HOMER installed" && \
     annovar --version 2>/dev/null || echo "ANNOVAR placeholder ready" && \
@@ -218,7 +245,7 @@ RUN samtools --version && \
     xz --version | head -n 1 && \
     zip --version | head -n 2 && \
     7z | head -n 2 && \
-    echo "✅ All 12 bioinformatics tools and compression utilities installed successfully"
+    echo "✅ All bioinformatics tools, format conversion utilities, and compression tools installed successfully"
 
 # Set working directory
 WORKDIR /tmp
