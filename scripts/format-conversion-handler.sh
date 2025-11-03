@@ -76,7 +76,13 @@ convert_fasta_to_fastq() {
         ' "$input_file" > "$output_file"
     fi
 
-    echo "✅ Conversion complete"
+    if [ $? -eq 0 ] && [ -f "$output_file" ]; then
+        echo "✅ Conversion complete"
+        return 0
+    else
+        echo "❌ Conversion failed"
+        return 1
+    fi
 }
 
 convert_fastq_to_fasta() {
@@ -715,16 +721,14 @@ for input_file in "${INPUT_FILES[@]}"; do
 
     # Call appropriate conversion function
     if type "convert_$CONVERSION_COMMAND" &>/dev/null; then
-        "convert_$CONVERSION_COMMAND" "$input_file" "$output_file"
-
-        if [ $? -eq 0 ]; then
-            ((CONVERTED_COUNT++))
+        if "convert_$CONVERSION_COMMAND" "$input_file" "$output_file"; then
+            CONVERTED_COUNT=$((CONVERTED_COUNT + 1))
         else
-            ((FAILED_COUNT++))
+            FAILED_COUNT=$((FAILED_COUNT + 1))
         fi
     else
         echo "❌ Conversion function not found: convert_$CONVERSION_COMMAND"
-        ((FAILED_COUNT++))
+        FAILED_COUNT=$((FAILED_COUNT + 1))
     fi
 done
 
