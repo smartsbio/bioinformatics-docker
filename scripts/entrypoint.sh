@@ -99,9 +99,12 @@ case "$TOOL_NAME" in
     "format-conversion")
         /usr/local/bin/scripts/format-conversion-handler.sh
         ;;
+    "sequence-editor")
+        /usr/local/bin/scripts/sequence-editor-handler.sh
+        ;;
     *)
         echo "❌ Unsupported tool: $TOOL_NAME"
-        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip, format-conversion"
+        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip, format-conversion, sequence-editor"
         exit 1
         ;;
 esac
