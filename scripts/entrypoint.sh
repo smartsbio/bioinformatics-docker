@@ -69,6 +69,9 @@ case "$TOOL_NAME" in
     "bedtools")
         /usr/local/bin/scripts/bedtools-handler.sh
         ;;
+    "gatk")
+        /usr/local/bin/scripts/gatk-handler.sh
+        ;;
     "fastqc")
         /usr/local/bin/scripts/fastqc-handler.sh
         ;;
@@ -104,7 +107,7 @@ case "$TOOL_NAME" in
         ;;
     *)
         echo "❌ Unsupported tool: $TOOL_NAME"
-        echo "Supported tools: samtools, bwa, bowtie2, bedtools, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip, format-conversion, sequence-editor"
+        echo "Supported tools: samtools, bwa, bowtie2, bedtools, gatk, fastqc, trimmomatic, picard, vcftools, fmlrc, homer, annovar, genomicranges, zip, format-conversion, sequence-editor"
         exit 1
         ;;
 esac
