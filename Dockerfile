@@ -136,6 +136,17 @@ RUN cd /tmp && \
     chmod +x /usr/local/bin/picard && \
     rm -f picard.jar
 
+# Install GATK (Genome Analysis Toolkit)
+ENV GATK_VERSION=4.5.0.0
+RUN cd /tmp && \
+    wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip && \
+    unzip gatk-${GATK_VERSION}.zip && \
+    mv gatk-${GATK_VERSION} /opt/gatk && \
+    ln -s /opt/gatk/gatk /usr/local/bin/gatk && \
+    chmod +x /usr/local/bin/gatk && \
+    cd / && \
+    rm -rf /tmp/gatk-*
+
 # Install VCFtools and BCFtools
 RUN apt-get update && apt-get install -y vcftools bcftools && rm -rf /var/lib/apt/lists/*
 
@@ -228,6 +239,7 @@ RUN samtools --version && \
     fastqc --version && \
     trimmomatic -version 2>&1 | head -n 1 && \
     picard -h 2>&1 | head -n 3 && \
+    gatk --version && \
     vcftools --version && \
     bcftools --version | head -n 1 && \
     seqtk 2>&1 | head -n 3 && \
