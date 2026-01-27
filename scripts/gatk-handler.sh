@@ -66,6 +66,16 @@ case "$COMMAND" in
         # Copy input BAM file
         cp "$INPUT_FILE_PATH" "/tmp/input.bam"
 
+        # Download BAM index file if it exists in S3
+        INPUT_BAM_INDEX="${INPUT_FILE_PATH}.bai"
+        if aws s3 ls "s3://$S3_BUCKET/test-data/input/${INPUT_FILENAME}.bai" 2>/dev/null; then
+            echo "📥 Downloading BAM index file..."
+            aws s3 cp "s3://$S3_BUCKET/test-data/input/${INPUT_FILENAME}.bai" "/tmp/input.bam.bai" --no-progress || echo "⚠️ Could not download BAM index"
+        else
+            echo "⚠️ No BAM index found, creating index with samtools..."
+            samtools index "/tmp/input.bam"
+        fi
+
         GATK_CMD="gatk HaplotypeCaller"
 
         # Add input and reference
