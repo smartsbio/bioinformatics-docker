@@ -26,6 +26,28 @@ INTERVALS=${INTERVALS:-""}
 THREADS=${THREADS:-"4"}
 MEMORY=${MEMORY:-"16g"}
 
+# Download reference genome if it uses @ notation
+if [[ "$REFERENCE_GENOME" == @* ]]; then
+    REF_S3_KEY="${REFERENCE_GENOME:1}"  # Remove @ prefix
+    REF_FILENAME=$(basename "$REF_S3_KEY")
+    REF_LOCAL_PATH="/tmp/reference/$REF_FILENAME"
+
+    echo "📥 Downloading reference genome from S3: $REF_S3_KEY"
+    mkdir -p /tmp/reference
+
+    if ! aws s3 cp "s3://$S3_BUCKET/test-data/input/$REF_S3_KEY" "$REF_LOCAL_PATH" --no-progress; then
+        echo "❌ Failed to download reference genome from S3"
+        exit 1
+    fi
+
+    # Download reference index files (.fai and .dict)
+    aws s3 cp "s3://$S3_BUCKET/test-data/input/${REF_S3_KEY}.fai" "${REF_LOCAL_PATH}.fai" --no-progress 2>/dev/null || echo "⚠️ No .fai index found"
+    aws s3 cp "s3://$S3_BUCKET/test-data/input/${REF_S3_KEY%.fasta}.dict" "${REF_LOCAL_PATH%.fasta}.dict" --no-progress 2>/dev/null || echo "⚠️ No .dict file found"
+
+    echo "✅ Reference genome downloaded: $REF_LOCAL_PATH"
+    REFERENCE_GENOME="$REF_LOCAL_PATH"
+fi
+
 # GATK-specific parameters
 MIN_BASE_QUALITY=${MIN_BASE_QUALITY:-"20"}
 MIN_MAPPING_QUALITY=${MIN_MAPPING_QUALITY:-"20"}

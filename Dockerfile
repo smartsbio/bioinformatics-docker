@@ -49,6 +49,9 @@ RUN apt-get update && apt-get install -y \
     r-base-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Create python symlink for tools that expect 'python' instead of 'python3'
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 # Install SAMtools from source for latest version
 ENV SAMTOOLS_VERSION=1.19.2
 RUN cd /tmp && \
