@@ -32,12 +32,12 @@ ADAPTER_FILE=${ADAPTER_FILE:-""}
 case "$COMMAND" in
     "single-end")
         echo "✂️ Running Trimmomatic single-end trimming..."
-        
+
         # Copy input file
         cp "$INPUT_FILE_PATH" "/tmp/input_reads.fastq"
-        
-        TRIMMOMATIC_CMD="trimmomatic SE"
-        
+
+        TRIMMOMATIC_CMD="trimmomatic SE -phred33"
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD -threads $THREADS"
@@ -85,18 +85,18 @@ case "$COMMAND" in
         
     "paired-end")
         echo "✂️ Running Trimmomatic paired-end trimming..."
-        
+
         # Copy input files (assuming paired files)
         cp "$INPUT_FILE_PATH" "/tmp/input_reads_R1.fastq"
         # Note: In real implementation, we'd handle multiple input files properly
-        
+
         OUTPUT_FILE_R1=${OUTPUT_FILE_R1:-"trimmed_reads_R1.fastq"}
         OUTPUT_FILE_R2=${OUTPUT_FILE_R2:-"trimmed_reads_R2.fastq"}
         OUTPUT_FILE_UNPAIRED_R1=${OUTPUT_FILE_UNPAIRED_R1:-"trimmed_reads_unpaired_R1.fastq"}
         OUTPUT_FILE_UNPAIRED_R2=${OUTPUT_FILE_UNPAIRED_R2:-"trimmed_reads_unpaired_R2.fastq"}
-        
-        TRIMMOMATIC_CMD="trimmomatic PE"
-        
+
+        TRIMMOMATIC_CMD="trimmomatic PE -phred33"
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD -threads $THREADS"
@@ -146,12 +146,12 @@ case "$COMMAND" in
         
     "quality-trim")
         echo "✂️ Running Trimmomatic quality-only trimming..."
-        
+
         # Copy input file
         cp "$INPUT_FILE_PATH" "/tmp/input_reads.fastq"
-        
-        TRIMMOMATIC_CMD="trimmomatic SE"
-        
+
+        TRIMMOMATIC_CMD="trimmomatic SE -phred33"
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD -threads $THREADS"
