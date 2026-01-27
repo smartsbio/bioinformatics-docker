@@ -110,8 +110,9 @@ RUN cd /tmp && \
     wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FASTQC_VERSION}.zip && \
     unzip fastqc_v${FASTQC_VERSION}.zip && \
     chmod 755 FastQC/fastqc && \
-    cp FastQC/fastqc /usr/local/bin/ && \
-    cp -r FastQC/* /usr/local/share/ && \
+    mkdir -p /opt/fastqc && \
+    mv FastQC/* /opt/fastqc/ && \
+    ln -s /opt/fastqc/fastqc /usr/local/bin/fastqc && \
     cd / && \
     rm -rf /tmp/FastQC*
 
