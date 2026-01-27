@@ -37,9 +37,9 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-dev \
-    # Java runtime for FastQC, Trimmomatic, Picard
-    openjdk-11-jre-headless \
-    openjdk-11-jdk-headless \
+    # Java runtime for FastQC, Trimmomatic, Picard, GATK (GATK 4.5+ requires Java 17)
+    openjdk-17-jre-headless \
+    openjdk-17-jdk-headless \
     # Perl runtime for ANNOVAR, HOMER, VCFtools
     perl \
     perl-modules \
