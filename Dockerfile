@@ -98,6 +98,16 @@ RUN cd /tmp && \
     cd / && \
     rm -rf /tmp/bowtie2-*
 
+# Install HISAT2
+ENV HISAT2_VERSION=2.2.1
+RUN cd /tmp && \
+    wget https://cloud.biohpc.swmed.edu/index.php/s/oTtGWbWjaxsQ2Ho/download -O hisat2-${HISAT2_VERSION}-Linux_x86_64.zip && \
+    unzip hisat2-${HISAT2_VERSION}-Linux_x86_64.zip && \
+    cp hisat2-${HISAT2_VERSION}/hisat2* /usr/local/bin/ && \
+    cp hisat2-${HISAT2_VERSION}/*.py /usr/local/bin/ && \
+    cd / && \
+    rm -rf /tmp/hisat2-*
+
 # Install BEDTools
 ENV BEDTOOLS_VERSION=2.31.0
 RUN cd /tmp && \
@@ -241,6 +251,7 @@ ENV PATH="/usr/local/bin/scripts:${PATH}"
 RUN samtools --version && \
     bwa 2>&1 | head -n 1 && \
     bowtie2 --version | head -n 1 && \
+    hisat2 --version | head -n 1 && \
     bedtools --version && \
     fastqc --version && \
     trimmomatic -version 2>&1 | head -n 1 && \
