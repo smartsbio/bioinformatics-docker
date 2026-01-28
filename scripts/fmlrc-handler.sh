@@ -42,40 +42,37 @@ case "$COMMAND" in
         
         # Step 1: Convert short reads to FMLRC format
         echo "📊 Converting short reads to FMLRC format..."
-        CONVERT_CMD="fmlrc-convert"
-        CONVERT_CMD="$CONVERT_CMD -k $KMER_SIZE"
-        CONVERT_CMD="$CONVERT_CMD -t $THREADS"
-        CONVERT_CMD="$CONVERT_CMD $SHORT_READS_FILE /tmp/short_reads.fmlrc"
-        
+        # fmlrc-convert syntax: fmlrc-convert -i input_file output_file
+        CONVERT_CMD="fmlrc-convert -i $SHORT_READS_FILE /tmp/short_reads.fmlrc"
+
         echo "🚀 Executing: $CONVERT_CMD"
-        
+
         if ! eval "$CONVERT_CMD"; then
             echo "❌ FMLRC convert failed"
             exit 1
         fi
-        
+
         echo "✅ Short reads converted successfully"
         
         # Step 2: Perform error correction
         echo "🔧 Performing long-read error correction..."
-        FMLRC_CMD="fmlrc"
-        FMLRC_CMD="$FMLRC_CMD -k $KMER_SIZE"
-        FMLRC_CMD="$FMLRC_CMD -t $THREADS"
-        FMLRC_CMD="$FMLRC_CMD -C $CACHE_SIZE"
-        
+        # fmlrc syntax: fmlrc [options] <comp_msbwt.npy> <long_reads.fa> <corrected_reads.fa>
+        # -k: k-mer size, -p: threads (not -t), -m: minimum count
+        FMLRC_CMD="fmlrc -k $KMER_SIZE -p $THREADS"
+
         if [[ -n "$MIN_COUNT" ]]; then
             FMLRC_CMD="$FMLRC_CMD -m $MIN_COUNT"
         fi
-        
+
         FMLRC_CMD="$FMLRC_CMD /tmp/short_reads.fmlrc /tmp/long_reads.fastq /tmp/output/$OUTPUT_FILE"
-        
+
         echo "🚀 Executing: $FMLRC_CMD"
-        
+
         if eval "$FMLRC_CMD"; then
             echo "✅ FMLRC error correction completed successfully"
-            
+
             # Display output file info
-            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
+            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || stat -f%z "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
             echo "📊 Corrected reads: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
         else
             echo "❌ FMLRC error correction failed"
@@ -85,22 +82,20 @@ case "$COMMAND" in
         
     "convert")
         echo "🔄 Running FMLRC convert (short reads preprocessing)..."
-        
+
         # Copy input file
         cp "$INPUT_FILE_PATH" "/tmp/short_reads.fastq"
-        
-        CONVERT_CMD="fmlrc-convert"
-        CONVERT_CMD="$CONVERT_CMD -k $KMER_SIZE"
-        CONVERT_CMD="$CONVERT_CMD -t $THREADS"
-        CONVERT_CMD="$CONVERT_CMD /tmp/short_reads.fastq /tmp/output/$OUTPUT_FILE"
-        
+
+        # fmlrc-convert syntax: fmlrc-convert -i input_file output_file
+        CONVERT_CMD="fmlrc-convert -i /tmp/short_reads.fastq /tmp/output/$OUTPUT_FILE"
+
         echo "🚀 Executing: $CONVERT_CMD"
-        
+
         if eval "$CONVERT_CMD"; then
             echo "✅ FMLRC convert completed successfully"
-            
+
             # Display output file info
-            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
+            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || stat -f%z "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
             echo "📊 FMLRC index: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
         else
             echo "❌ FMLRC convert failed"
@@ -120,8 +115,9 @@ case "$COMMAND" in
         fi
         
         # Convert short reads first
-        CONVERT_CMD="fmlrc-convert -k $KMER_SIZE -t $THREADS $SHORT_READS_FILE /tmp/short_reads.fmlrc"
-        
+        # fmlrc-convert syntax: fmlrc-convert -i input_file output_file
+        CONVERT_CMD="fmlrc-convert -i $SHORT_READS_FILE /tmp/short_reads.fmlrc"
+
         if eval "$CONVERT_CMD"; then
             echo "✅ Short reads converted for batch processing"
         else
@@ -132,13 +128,14 @@ case "$COMMAND" in
         # Correct each long-read file
         BATCH_OUTPUT_DIR="/tmp/output/batch_corrected"
         mkdir -p "$BATCH_OUTPUT_DIR"
-        
-        FMLRC_CMD="fmlrc -k $KMER_SIZE -t $THREADS -C $CACHE_SIZE"
+
+        # fmlrc syntax: fmlrc [options] <comp_msbwt.npy> <long_reads.fa> <corrected_reads.fa>
+        FMLRC_CMD="fmlrc -k $KMER_SIZE -p $THREADS -m $MIN_COUNT"
         FMLRC_CMD="$FMLRC_CMD /tmp/short_reads.fmlrc /tmp/long_reads.fastq $BATCH_OUTPUT_DIR/$OUTPUT_FILE"
-        
+
         if eval "$FMLRC_CMD"; then
             echo "✅ FMLRC batch correction completed successfully"
-            
+
             echo "📁 Batch corrected files:"
             ls -la "$BATCH_OUTPUT_DIR/"
         else
