@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y \
     libncurses5-dev \
     libncursesw5-dev \
     libcurl4-openssl-dev \
+    libxml2-dev \
+    libssl-dev \
     # AWS CLI
     awscli \
     # Python runtime and development libraries
@@ -220,7 +222,8 @@ RUN mkdir -p /opt/annovar && \
 
 # Install R packages for GenomicRanges
 RUN R -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager', repos='https://cran.r-project.org')" && \
-    R -e "BiocManager::install(c('GenomicRanges', 'IRanges', 'GenomicFeatures', 'rtracklayer', 'Biostrings', 'BSgenome'), ask=FALSE)" && \
+    R -e "BiocManager::install(c('GenomicRanges', 'IRanges', 'GenomicFeatures', 'rtracklayer', 'Biostrings', 'BSgenome'), ask=FALSE, update=FALSE)" && \
+    R -e "if (!require('rtracklayer', quietly = TRUE)) stop('rtracklayer installation failed')" && \
     echo '#!/usr/bin/env Rscript\ncat("GenomicRanges R environment ready\\n")' > /usr/local/bin/genomicranges && \
     chmod +x /usr/local/bin/genomicranges
 
