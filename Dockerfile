@@ -204,20 +204,19 @@ RUN cd /tmp && \
     rm -rf /tmp/fmlrc*
 
 # Install HOMER (Motif discovery and ChIP-Seq analysis) - Make optional
-ENV HOMER_VERSION=4.11
-RUN cd /tmp && \
+ENV HOMER_VERSION=4.11.1
+RUN mkdir -p /opt/homer && \
+    cd /opt/homer && \
     (wget http://homer.ucsd.edu/homer/configureHomer.pl && \
-    perl configureHomer.pl -install homer && \
-    cp /opt/homer/bin/* /usr/local/bin/ 2>/dev/null || true && \
-    mkdir -p /opt/homer && \
-    mv homer /opt/homer/ && \
-    echo 'export PATH=/opt/homer/bin:$PATH' >> /etc/bash.bashrc) || \
+    perl configureHomer.pl -install homer -version v${HOMER_VERSION}) || \
     (echo "⚠️  HOMER installation failed, creating placeholder" && \
-    mkdir -p /opt/homer && \
-    echo '#!/bin/bash\necho "HOMER not available - build failed"' > /usr/local/bin/findMotifsGenome.pl && \
-    chmod +x /usr/local/bin/findMotifsGenome.pl) && \
-    cd / && \
-    rm -f configureHomer.pl
+    mkdir -p /opt/homer/bin && \
+    echo '#!/bin/bash\necho "HOMER not available - build failed"' > /opt/homer/bin/findMotifsGenome.pl && \
+    chmod +x /opt/homer/bin/findMotifsGenome.pl) && \
+    cd /
+
+# Add HOMER to PATH
+ENV PATH="${PATH}:/opt/homer/bin/"
 
 # Install ANNOVAR (Variant annotation)
 # Note: ANNOVAR requires registration, so we'll create a placeholder structure
