@@ -43,14 +43,23 @@ case "$COMMAND" in
         # Step 1: Convert short reads to FMLRC format
         echo "📊 Converting short reads to FMLRC format..."
 
-        # Convert FASTQ to FASTA if needed (fmlrc-convert requires FASTA format)
+        # Extract raw sequences (fmlrc-convert requires raw DNA bases only, no headers)
         if [[ "$SHORT_READS_FILE" == *.fastq ]] || [[ "$SHORT_READS_FILE" == *.fq ]]; then
-            echo "📊 Converting FASTQ to FASTA format..."
-            if ! seqtk seq -A "$SHORT_READS_FILE" > /tmp/short_reads.fasta; then
-                echo "❌ FASTQ to FASTA conversion failed"
+            echo "📊 Extracting raw sequences from FASTQ..."
+            # Use awk to extract only sequence lines (every 2nd line starting from line 2)
+            if ! awk 'NR%4==2' "$SHORT_READS_FILE" > /tmp/short_reads_raw.txt; then
+                echo "❌ Raw sequence extraction failed"
                 exit 1
             fi
-            SHORT_READS_INPUT="/tmp/short_reads.fasta"
+            SHORT_READS_INPUT="/tmp/short_reads_raw.txt"
+        elif [[ "$SHORT_READS_FILE" == *.fa ]] || [[ "$SHORT_READS_FILE" == *.fasta ]]; then
+            echo "📊 Extracting raw sequences from FASTA..."
+            # Use grep to get only sequence lines (not header lines starting with >)
+            if ! grep -v '^>' "$SHORT_READS_FILE" > /tmp/short_reads_raw.txt; then
+                echo "❌ Raw sequence extraction failed"
+                exit 1
+            fi
+            SHORT_READS_INPUT="/tmp/short_reads_raw.txt"
         else
             SHORT_READS_INPUT="$SHORT_READS_FILE"
         fi
@@ -99,16 +108,17 @@ case "$COMMAND" in
         # Copy input file
         cp "$INPUT_FILE_PATH" "/tmp/short_reads.fastq"
 
-        # Convert FASTQ to FASTA (fmlrc-convert requires FASTA format)
-        echo "📊 Converting FASTQ to FASTA format..."
-        if ! seqtk seq -A /tmp/short_reads.fastq > /tmp/short_reads.fasta; then
-            echo "❌ FASTQ to FASTA conversion failed"
+        # Extract raw sequences (fmlrc-convert requires raw DNA bases only, no headers)
+        echo "📊 Extracting raw sequences from FASTQ..."
+        # Use awk to extract only sequence lines (every 2nd line starting from line 2)
+        if ! awk 'NR%4==2' /tmp/short_reads.fastq > /tmp/short_reads_raw.txt; then
+            echo "❌ Raw sequence extraction failed"
             exit 1
         fi
-        echo "✅ Converted to FASTA format"
+        echo "✅ Extracted raw sequences"
 
         # fmlrc-convert syntax: fmlrc-convert -i input_file output_file
-        CONVERT_CMD="fmlrc-convert -i /tmp/short_reads.fasta /tmp/output/$OUTPUT_FILE"
+        CONVERT_CMD="fmlrc-convert -i /tmp/short_reads_raw.txt /tmp/output/$OUTPUT_FILE"
 
         echo "🚀 Executing: $CONVERT_CMD"
 
@@ -136,14 +146,23 @@ case "$COMMAND" in
         fi
         
         # Convert short reads first
-        # Convert FASTQ to FASTA if needed (fmlrc-convert requires FASTA format)
+        # Extract raw sequences (fmlrc-convert requires raw DNA bases only, no headers)
         if [[ "$SHORT_READS_FILE" == *.fastq ]] || [[ "$SHORT_READS_FILE" == *.fq ]]; then
-            echo "📊 Converting FASTQ to FASTA format..."
-            if ! seqtk seq -A "$SHORT_READS_FILE" > /tmp/short_reads.fasta; then
-                echo "❌ FASTQ to FASTA conversion failed"
+            echo "📊 Extracting raw sequences from FASTQ..."
+            # Use awk to extract only sequence lines (every 2nd line starting from line 2)
+            if ! awk 'NR%4==2' "$SHORT_READS_FILE" > /tmp/short_reads_raw.txt; then
+                echo "❌ Raw sequence extraction failed"
                 exit 1
             fi
-            SHORT_READS_INPUT="/tmp/short_reads.fasta"
+            SHORT_READS_INPUT="/tmp/short_reads_raw.txt"
+        elif [[ "$SHORT_READS_FILE" == *.fa ]] || [[ "$SHORT_READS_FILE" == *.fasta ]]; then
+            echo "📊 Extracting raw sequences from FASTA..."
+            # Use grep to get only sequence lines (not header lines starting with >)
+            if ! grep -v '^>' "$SHORT_READS_FILE" > /tmp/short_reads_raw.txt; then
+                echo "❌ Raw sequence extraction failed"
+                exit 1
+            fi
+            SHORT_READS_INPUT="/tmp/short_reads_raw.txt"
         else
             SHORT_READS_INPUT="$SHORT_READS_FILE"
         fi
