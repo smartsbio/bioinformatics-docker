@@ -194,9 +194,6 @@ RUN cd /tmp && \
     (git clone https://github.com/holtjma/fmlrc.git && \
     cd fmlrc && \
     git checkout v${FMLRC_VERSION} && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
     make && \
     cp fmlrc /usr/local/bin/ && \
     cp fmlrc-convert /usr/local/bin/) || \
