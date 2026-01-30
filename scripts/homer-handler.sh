@@ -19,8 +19,23 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 HOMER command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_DIR=${OUTPUT_DIR:-"/tmp/output/homer_results"}
+# Strip @ notation from output directory path
+OUTPUT_DIR="${OUTPUT_DIR#@}"
+# Ensure OUTPUT_DIR starts with /tmp/output/
+if [[ "$OUTPUT_DIR" != /tmp/output/* ]]; then
+    OUTPUT_DIR="/tmp/output/$OUTPUT_DIR"
+fi
 GENOME=${GENOME:-"hg38"}
 MOTIF_LENGTH=${MOTIF_LENGTH:-"8,10,12"}
 NUM_MOTIFS=${NUM_MOTIFS:-"25"}

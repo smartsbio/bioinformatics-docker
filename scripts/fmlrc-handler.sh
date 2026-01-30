@@ -19,13 +19,31 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 FMLRC command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_FILE=${OUTPUT_FILE:-"corrected_reads.fastq"}
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 KMER_SIZE=${KMER_SIZE:-"21"}
 MIN_COUNT=${MIN_COUNT:-"2"}
 CACHE_SIZE=${CACHE_SIZE:-"8"}
 THREADS=${THREADS:-"4"}
 SHORT_READS_FILE=${SHORT_READS_FILE:-""}
+
+# Create subdirectories in output path if needed
+OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+    mkdir -p "$OUTPUT_DIR"
+    echo "📁 Created output directory: $OUTPUT_DIR"
+fi
 
 case "$COMMAND" in
     "correct")

@@ -19,8 +19,19 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 VCFtools command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_PREFIX=${OUTPUT_PREFIX:-"output"}
+# Strip @ notation from output prefix path
+OUTPUT_PREFIX="${OUTPUT_PREFIX#@}"
 MIN_ALLELES=${MIN_ALLELES:-"2"}
 MAX_ALLELES=${MAX_ALLELES:-"2"}
 MIN_QUALITY=${MIN_QUALITY:-"30"}
@@ -30,6 +41,13 @@ MAF=${MAF:-""}  # Minor allele frequency
 MAX_MISSING=${MAX_MISSING:-""}
 REMOVE_INDELS=${REMOVE_INDELS:-"false"}
 REMOVE_SNPS=${REMOVE_SNPS:-"false"}
+
+# Create subdirectories in output path if needed
+OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_PREFIX")
+if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+    mkdir -p "$OUTPUT_DIR"
+    echo "📁 Created output directory: $OUTPUT_DIR"
+fi
 
 case "$COMMAND" in
     "filter")

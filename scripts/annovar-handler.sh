@@ -19,13 +19,31 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 ANNOVAR command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_PREFIX=${OUTPUT_PREFIX:-"annotated"}
+# Strip @ notation from output prefix path
+OUTPUT_PREFIX="${OUTPUT_PREFIX#@}"
 BUILD_VERSION=${BUILD_VERSION:-"hg38"}
 PROTOCOL=${PROTOCOL:-"refGene,cytoBand,exac03,clinvar_20180603,cosmic70,dbnsfp31a_interpro"}
 OPERATION=${OPERATION:-"g,r,f,f,f,f"}
 REMOVE=${REMOVE:-"true"}
 CSV_OUTPUT=${CSV_OUTPUT:-"false"}
+
+# Create subdirectories in output path if needed
+OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_PREFIX")
+if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+    mkdir -p "$OUTPUT_DIR"
+    echo "📁 Created output directory: $OUTPUT_DIR"
+fi
 
 # Note: ANNOVAR requires license and database downloads
 # This is a placeholder implementation showing the structure

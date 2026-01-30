@@ -19,13 +19,31 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 Picard command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_FILE=${OUTPUT_FILE:-"output.bam"}
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 SORT_ORDER=${SORT_ORDER:-"coordinate"}
 VALIDATION_STRINGENCY=${VALIDATION_STRINGENCY:-"LENIENT"}
 MAX_RECORDS_IN_RAM=${MAX_RECORDS_IN_RAM:-"500000"}
 COMPRESSION_LEVEL=${COMPRESSION_LEVEL:-"5"}
 CREATE_INDEX=${CREATE_INDEX:-"true"}
+
+# Create subdirectories in output path if needed
+OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+    mkdir -p "$OUTPUT_DIR"
+    echo "📁 Created output directory: $OUTPUT_DIR"
+fi
 
 case "$COMMAND" in
     "sort")

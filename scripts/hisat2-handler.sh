@@ -19,14 +19,26 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 HISAT2 command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_FILE=${OUTPUT_FILE:-"aligned_reads.sam"}
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 INDEX_PREFIX=${INDEX_PREFIX:-"reference_index"}
 THREADS=${THREADS:-"4"}
 PHRED_QUALITY=${PHRED_QUALITY:-"phred33"}
 STRANDNESS=${STRANDNESS:-""}
 MAX_INTRON_LENGTH=${MAX_INTRON_LENGTH:-"500000"}
 MIN_INTRON_LENGTH=${MIN_INTRON_LENGTH:-"20"}
+REFERENCE_GENOME=${REFERENCE_GENOME:-""}
 
 case "$COMMAND" in
     "build")
@@ -57,14 +69,53 @@ case "$COMMAND" in
     "align")
         echo "🧬 Running HISAT2 read alignment..."
 
-        # Copy input file (reads)
-        cp "$INPUT_FILE_PATH" "/tmp/reads.fastq"
-
-        # Check if index files are provided (in real scenario)
-        if [[ -z "$INDEX_PREFIX" ]]; then
-            echo "❌ Index prefix required for alignment"
+        if [[ -z "$REFERENCE_GENOME" ]]; then
+            echo "❌ Reference genome required for alignment"
             exit 1
         fi
+
+        # Strip @ notation and file extension from reference genome
+        # Example: @exp1/phix174.fasta -> exp1/phix174
+        CLEAN_REFERENCE="${REFERENCE_GENOME#@}"  # Remove @ prefix
+        CLEAN_REFERENCE="${CLEAN_REFERENCE%.*}"   # Remove file extension
+        echo "📚 Using reference index: $CLEAN_REFERENCE"
+
+        # Check if HISAT2 index exists, if not build it automatically
+        INDEX_BASE="/tmp/index/$(basename $CLEAN_REFERENCE)"
+        if [[ ! -f "${INDEX_BASE}.1.ht2" ]]; then
+            echo "⚠️  HISAT2 index not found, building it automatically..."
+
+            # Download reference genome FASTA file
+            REFERENCE_FASTA="${REFERENCE_GENOME#@}"  # Remove @ prefix (keep extension)
+            REFERENCE_S3_KEY="organizations/${ORGANIZATION_ID}/workspaces/${WORKSPACE_ID}/files/${REFERENCE_FASTA}"
+
+            echo "📥 Downloading reference genome: s3://${S3_BUCKET}/${REFERENCE_S3_KEY}"
+            mkdir -p /tmp/index
+
+            if aws s3 cp "s3://${S3_BUCKET}/${REFERENCE_S3_KEY}" "/tmp/index/reference.fasta" --no-progress; then
+                echo "✅ Reference genome downloaded"
+
+                # Build the index
+                echo "🔨 Building HISAT2 index..."
+                BUILD_CMD="hisat2-build -p $THREADS /tmp/index/reference.fasta ${INDEX_BASE}"
+
+                echo "🚀 Executing: $BUILD_CMD"
+                if eval "$BUILD_CMD"; then
+                    echo "✅ HISAT2 index built successfully"
+                else
+                    echo "❌ Failed to build HISAT2 index"
+                    exit 1
+                fi
+            else
+                echo "❌ Failed to download reference genome from S3"
+                exit 1
+            fi
+        else
+            echo "✅ HISAT2 index already exists"
+        fi
+
+        # Copy input file (reads)
+        cp "$INPUT_FILE_PATH" "/tmp/reads.fastq"
 
         HISAT2_CMD="hisat2"
         HISAT2_CMD="$HISAT2_CMD -p $THREADS"
@@ -85,9 +136,17 @@ case "$COMMAND" in
         HISAT2_CMD="$HISAT2_CMD --min-intronlen $MIN_INTRON_LENGTH"
         HISAT2_CMD="$HISAT2_CMD --max-intronlen $MAX_INTRON_LENGTH"
 
-        # Specify index and reads
-        HISAT2_CMD="$HISAT2_CMD -x /tmp/output/$INDEX_PREFIX"
+        # Specify index and reads (use the built index path)
+        HISAT2_CMD="$HISAT2_CMD -x ${INDEX_BASE}"
         HISAT2_CMD="$HISAT2_CMD -U /tmp/reads.fastq"
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         HISAT2_CMD="$HISAT2_CMD -S /tmp/output/$OUTPUT_FILE"
 
         echo "🚀 Executing: $HISAT2_CMD"

@@ -19,8 +19,19 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 BEDTools command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_FILE=${OUTPUT_FILE:-"output.bed"}
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 OVERLAP_FRACTION=${OVERLAP_FRACTION:-"0.0"}
 MINIMUM_OVERLAP=${MINIMUM_OVERLAP:-"1"}
 STRAND_SPECIFIC=${STRAND_SPECIFIC:-"false"}
@@ -59,8 +70,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools intersect completed successfully"
@@ -86,8 +104,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools merge completed successfully"
@@ -109,8 +134,15 @@ case "$COMMAND" in
         
         BEDTOOLS_CMD="bedtools sort -i /tmp/input_intervals.bed"
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools sort completed successfully"
@@ -143,8 +175,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools coverage completed successfully"
@@ -177,8 +216,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools subtract completed successfully"
@@ -210,8 +256,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools closest completed successfully"
@@ -243,8 +296,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -g /tmp/genome.txt"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools complement completed successfully"
@@ -281,8 +341,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools flank completed successfully"
@@ -319,8 +386,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools slop completed successfully"
@@ -357,8 +431,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools window completed successfully"
@@ -390,8 +471,15 @@ case "$COMMAND" in
             BEDTOOLS_CMD="$BEDTOOLS_CMD -s"
         fi
         
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BEDTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BEDTools cluster completed successfully"
