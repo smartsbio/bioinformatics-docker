@@ -29,37 +29,34 @@ EXTRACT=${EXTRACT:-"true"}
 case "$COMMAND" in
     "quality-report")
         echo "📊 Running FastQC quality analysis..."
-        
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input_reads.fastq"
-        
+
         FASTQC_CMD="fastqc"
-        
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             FASTQC_CMD="$FASTQC_CMD --threads $THREADS"
         fi
-        
+
         # Add output directory
         FASTQC_CMD="$FASTQC_CMD --outdir $OUTPUT_DIR"
-        
+
         # Add format if specified
         if [[ "$FORMAT" != "auto" ]]; then
             FASTQC_CMD="$FASTQC_CMD --format $FORMAT"
         fi
-        
+
         # Add kmer size
         if [[ "$KMER_SIZE" != "7" ]]; then
             FASTQC_CMD="$FASTQC_CMD --kmers $KMER_SIZE"
         fi
-        
+
         # Extract results
         if [[ "$EXTRACT" == "true" ]]; then
             FASTQC_CMD="$FASTQC_CMD --extract"
         fi
-        
-        # Add input file
-        FASTQC_CMD="$FASTQC_CMD /tmp/input_reads.fastq"
+
+        # Add input file - use actual input file path
+        FASTQC_CMD="$FASTQC_CMD \"$INPUT_FILE_PATH\""
         
         echo "🚀 Executing: $FASTQC_CMD"
         
@@ -131,37 +128,34 @@ case "$COMMAND" in
         
     "custom-limits")
         echo "📊 Running FastQC with custom limits..."
-        
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input_reads.fastq"
-        
+
         FASTQC_CMD="fastqc"
-        
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             FASTQC_CMD="$FASTQC_CMD --threads $THREADS"
         fi
-        
+
         # Add output directory
         FASTQC_CMD="$FASTQC_CMD --outdir $OUTPUT_DIR"
-        
+
         # Add custom limits file if specified
         if [[ -n "$LIMITS_FILE" ]]; then
             FASTQC_CMD="$FASTQC_CMD --limits $LIMITS_FILE"
         fi
-        
+
         # Add contaminants file if specified
         if [[ -n "$CONTAMINANTS_FILE" ]]; then
             FASTQC_CMD="$FASTQC_CMD --contaminants $CONTAMINANTS_FILE"
         fi
-        
+
         # Add adapters file if specified
         if [[ -n "$ADAPTERS_FILE" ]]; then
             FASTQC_CMD="$FASTQC_CMD --adapters $ADAPTERS_FILE"
         fi
-        
-        # Add input file
-        FASTQC_CMD="$FASTQC_CMD /tmp/input_reads.fastq"
+
+        # Add input file - use actual input file path
+        FASTQC_CMD="$FASTQC_CMD \"$INPUT_FILE_PATH\""
         
         echo "🚀 Executing: $FASTQC_CMD"
         
