@@ -191,9 +191,16 @@ case "$COMMAND" in
 
         # Add index and reads (use the built index path)
         BOWTIE2_CMD="$BOWTIE2_CMD -x ${INDEX_BASE} -U /tmp/reads.fastq"
-        
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BOWTIE2_CMD -S /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BOWTIE2_CMD -S /tmp/output/$OUTPUT_FILE"; then
             echo "✅ Bowtie2 alignment completed successfully"
@@ -294,9 +301,16 @@ case "$COMMAND" in
 
         # Add index and paired reads (use the built index path)
         BOWTIE2_CMD="$BOWTIE2_CMD -x ${INDEX_BASE} -1 /tmp/reads1.fastq -2 /tmp/reads2.fastq"
-        
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BOWTIE2_CMD -S /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BOWTIE2_CMD -S /tmp/output/$OUTPUT_FILE"; then
             echo "✅ Bowtie2 paired-end alignment completed successfully"
