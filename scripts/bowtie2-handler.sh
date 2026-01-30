@@ -30,6 +30,8 @@ fi
 
 # Parse additional parameters from environment
 OUTPUT_FILE=${OUTPUT_FILE:-"output.sam"}
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 THREADS=${THREADS:-"4"}
 REFERENCE_GENOME=${REFERENCE_GENOME:-""}
 PRESET=${PRESET:-"sensitive"}
