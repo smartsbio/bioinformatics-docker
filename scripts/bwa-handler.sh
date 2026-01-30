@@ -19,8 +19,19 @@ INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 echo "📁 Processing file: $INPUT_FILENAME"
 echo "🎯 BWA command: $COMMAND"
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Parse additional parameters from environment
 OUTPUT_FILE=${OUTPUT_FILE:-"output.sam"}
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 THREADS=${THREADS:-"4"}
 REFERENCE_GENOME=${REFERENCE_GENOME:-""}
 ALGORITHM=${ALGORITHM:-"mem"}
@@ -79,57 +90,107 @@ case "$COMMAND" in
         
     "mem")
         echo "🔍 Running BWA mem command..."
-        
+
         if [[ -z "$REFERENCE_GENOME" ]]; then
             echo "❌ Reference genome required for alignment"
             exit 1
         fi
-        
-        # For mem, we need a pre-built index
-        # Copy reference and reads
+
+        # Strip @ notation and file extension from reference genome
+        # Example: @exp1/phix174.fasta -> exp1/phix174
+        CLEAN_REFERENCE="${REFERENCE_GENOME#@}"  # Remove @ prefix
+        CLEAN_REFERENCE="${CLEAN_REFERENCE%.*}"   # Remove file extension
+        echo "📚 Using reference index: $CLEAN_REFERENCE"
+
+        # Check if BWA index exists, if not build it automatically
+        INDEX_BASE="/tmp/index/$(basename $CLEAN_REFERENCE)"
+        if [[ ! -f "${INDEX_BASE}.bwt" ]]; then
+            echo "⚠️  BWA index not found, building it automatically..."
+
+            # Download reference genome FASTA file
+            REFERENCE_FASTA="${REFERENCE_GENOME#@}"  # Remove @ prefix (keep extension)
+            REFERENCE_S3_KEY="organizations/${ORGANIZATION_ID}/workspaces/${WORKSPACE_ID}/files/${REFERENCE_FASTA}"
+
+            echo "📥 Downloading reference genome: s3://${S3_BUCKET}/${REFERENCE_S3_KEY}"
+            mkdir -p /tmp/index
+
+            if aws s3 cp "s3://${S3_BUCKET}/${REFERENCE_S3_KEY}" "/tmp/index/reference.fasta" --no-progress; then
+                echo "✅ Reference genome downloaded"
+
+                # Build the index
+                echo "🔨 Building BWA index..."
+                BUILD_CMD="bwa index"
+                if [[ -n "$INDEX_ALGORITHM" ]]; then
+                    BUILD_CMD="$BUILD_CMD -a $INDEX_ALGORITHM"
+                fi
+                BUILD_CMD="$BUILD_CMD -p ${INDEX_BASE} /tmp/index/reference.fasta"
+
+                echo "🚀 Executing: $BUILD_CMD"
+                if eval "$BUILD_CMD"; then
+                    echo "✅ BWA index built successfully"
+                else
+                    echo "❌ Failed to build BWA index"
+                    exit 1
+                fi
+            else
+                echo "❌ Failed to download reference genome from S3"
+                exit 1
+            fi
+        else
+            echo "✅ BWA index already exists"
+        fi
+
+        # Copy reads
         cp "$INPUT_FILE_PATH" "/tmp/reads.fastq"
-        
+
         BWA_CMD="bwa mem"
-        
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             BWA_CMD="$BWA_CMD -t $THREADS"
         fi
-        
+
         # Add BWA mem specific parameters
         if [[ -n "$MIN_SEED_LENGTH" ]]; then
             BWA_CMD="$BWA_CMD -k $MIN_SEED_LENGTH"
         fi
-        
+
         if [[ -n "$BAND_WIDTH" ]]; then
             BWA_CMD="$BWA_CMD -w $BAND_WIDTH"
         fi
-        
+
         if [[ -n "$OFF_DIAGONAL_X_DROPOFF" ]]; then
             BWA_CMD="$BWA_CMD -d $OFF_DIAGONAL_X_DROPOFF"
         fi
-        
+
         if [[ -n "$MINIMUM_SCORE_TO_OUTPUT" ]]; then
             BWA_CMD="$BWA_CMD -T $MINIMUM_SCORE_TO_OUTPUT"
         fi
-        
+
         if [[ -n "$MATCHING_SCORE" ]]; then
             BWA_CMD="$BWA_CMD -A $MATCHING_SCORE"
         fi
-        
+
         if [[ -n "$MISMATCH_PENALTY" ]]; then
             BWA_CMD="$BWA_CMD -B $MISMATCH_PENALTY"
         fi
-        
-        # Add reference and reads
-        BWA_CMD="$BWA_CMD $REFERENCE_GENOME /tmp/reads.fastq"
-        
+
+        # Add index and reads (use the built index path)
+        BWA_CMD="$BWA_CMD ${INDEX_BASE} /tmp/reads.fastq"
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $BWA_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$BWA_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ BWA mem alignment completed successfully"
-            
+
             # Display output file info
             OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
             echo "📊 Output file: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
