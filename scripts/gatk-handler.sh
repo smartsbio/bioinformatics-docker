@@ -85,7 +85,8 @@ case "$COMMAND" in
         fi
 
         # Create sequence dictionary if it doesn't exist (.dict file)
-        DICT_FILE="${REFERENCE_GENOME%.fasta}.dict"
+        # Remove .fasta or .fa extension and add .dict
+        DICT_FILE="${REFERENCE_GENOME%.fasta}"
         DICT_FILE="${DICT_FILE%.fa}.dict"
         if [[ ! -f "$DICT_FILE" ]]; then
             echo "🔧 Creating sequence dictionary for reference genome..."
