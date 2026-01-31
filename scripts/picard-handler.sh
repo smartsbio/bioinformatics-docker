@@ -46,51 +46,48 @@ if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
 fi
 
 case "$COMMAND" in
-    "sort")
+    "SortSam"|"sort")
         echo "🔄 Running Picard SortSam..."
-        
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input.bam"
-        
+
         PICARD_CMD="picard SortSam"
-        PICARD_CMD="$PICARD_CMD INPUT=/tmp/input.bam"
+        PICARD_CMD="$PICARD_CMD INPUT=$INPUT_FILE_PATH"
         PICARD_CMD="$PICARD_CMD OUTPUT=/tmp/output/$OUTPUT_FILE"
-        
+
         # Add sort order
         if [[ -n "$SORT_ORDER" ]]; then
             PICARD_CMD="$PICARD_CMD SORT_ORDER=$SORT_ORDER"
         fi
-        
+
         # Add validation stringency
         if [[ -n "$VALIDATION_STRINGENCY" ]]; then
             PICARD_CMD="$PICARD_CMD VALIDATION_STRINGENCY=$VALIDATION_STRINGENCY"
         fi
-        
+
         # Add memory parameters
         if [[ -n "$MAX_RECORDS_IN_RAM" ]]; then
             PICARD_CMD="$PICARD_CMD MAX_RECORDS_IN_RAM=$MAX_RECORDS_IN_RAM"
         fi
-        
+
         # Add compression
         if [[ -n "$COMPRESSION_LEVEL" ]]; then
             PICARD_CMD="$PICARD_CMD COMPRESSION_LEVEL=$COMPRESSION_LEVEL"
         fi
-        
+
         # Create index
         if [[ "$CREATE_INDEX" == "true" ]]; then
             PICARD_CMD="$PICARD_CMD CREATE_INDEX=true"
         fi
-        
+
         echo "🚀 Executing: $PICARD_CMD"
-        
+
         # Execute the command
         if eval "$PICARD_CMD"; then
             echo "✅ Picard SortSam completed successfully"
-            
+
             # Display output file info
             OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
             echo "📊 Output file: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
-            
+
             # List all generated files
             echo "📁 Generated files:"
             ls -la /tmp/output/
@@ -99,41 +96,38 @@ case "$COMMAND" in
             exit 1
         fi
         ;;
-        
-    "mark-duplicates")
+
+    "MarkDuplicates"|"mark-duplicates")
         echo "🔍 Running Picard MarkDuplicates..."
-        
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input.bam"
-        
+
         METRICS_FILE=${METRICS_FILE:-"duplicate_metrics.txt"}
-        
+
         PICARD_CMD="picard MarkDuplicates"
-        PICARD_CMD="$PICARD_CMD INPUT=/tmp/input.bam"
+        PICARD_CMD="$PICARD_CMD INPUT=$INPUT_FILE_PATH"
         PICARD_CMD="$PICARD_CMD OUTPUT=/tmp/output/$OUTPUT_FILE"
         PICARD_CMD="$PICARD_CMD METRICS_FILE=/tmp/output/$METRICS_FILE"
-        
+
         # Add validation stringency
         if [[ -n "$VALIDATION_STRINGENCY" ]]; then
             PICARD_CMD="$PICARD_CMD VALIDATION_STRINGENCY=$VALIDATION_STRINGENCY"
         fi
-        
+
         # Create index
         if [[ "$CREATE_INDEX" == "true" ]]; then
             PICARD_CMD="$PICARD_CMD CREATE_INDEX=true"
         fi
-        
+
         # Remove duplicates option
         if [[ "$REMOVE_DUPLICATES" == "true" ]]; then
             PICARD_CMD="$PICARD_CMD REMOVE_DUPLICATES=true"
         fi
-        
+
         echo "🚀 Executing: $PICARD_CMD"
-        
+
         # Execute the command
         if eval "$PICARD_CMD"; then
             echo "✅ Picard MarkDuplicates completed successfully"
-            
+
             # Display output files info
             echo "📁 Generated files:"
             ls -la /tmp/output/
@@ -142,38 +136,34 @@ case "$COMMAND" in
             exit 1
         fi
         ;;
-        
-    "merge")
+
+    "MergeSamFiles"|"merge")
         echo "🔗 Running Picard MergeSamFiles..."
-        
-        # Copy input files (for merging multiple files)
-        cp "$INPUT_FILE_PATH" "/tmp/input1.bam"
-        # Note: In real implementation, we'd handle multiple input files
-        
+
         PICARD_CMD="picard MergeSamFiles"
-        PICARD_CMD="$PICARD_CMD INPUT=/tmp/input1.bam"
-        # Add more inputs as needed: INPUT=/tmp/input2.bam INPUT=/tmp/input3.bam
+        PICARD_CMD="$PICARD_CMD INPUT=$INPUT_FILE_PATH"
+        # Note: For merging multiple files, add more INPUT parameters
         PICARD_CMD="$PICARD_CMD OUTPUT=/tmp/output/$OUTPUT_FILE"
-        
+
         # Add validation stringency
         if [[ -n "$VALIDATION_STRINGENCY" ]]; then
             PICARD_CMD="$PICARD_CMD VALIDATION_STRINGENCY=$VALIDATION_STRINGENCY"
         fi
-        
+
         # Create index
         if [[ "$CREATE_INDEX" == "true" ]]; then
             PICARD_CMD="$PICARD_CMD CREATE_INDEX=true"
         fi
-        
+
         # Merge sequence dictionaries
         PICARD_CMD="$PICARD_CMD MERGE_SEQUENCE_DICTIONARIES=true"
-        
+
         echo "🚀 Executing: $PICARD_CMD"
-        
+
         # Execute the command
         if eval "$PICARD_CMD"; then
             echo "✅ Picard MergeSamFiles completed successfully"
-            
+
             # Display output file info
             OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
             echo "📊 Output file: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
@@ -182,82 +172,75 @@ case "$COMMAND" in
             exit 1
         fi
         ;;
-        
-    "validate")
+
+    "ValidateSamFile"|"validate")
         echo "✅ Running Picard ValidateSamFile..."
-        
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input.bam"
-        
+
         VALIDATION_REPORT=${OUTPUT_FILE:-"validation_report.txt"}
-        
+
         PICARD_CMD="picard ValidateSamFile"
-        PICARD_CMD="$PICARD_CMD INPUT=/tmp/input.bam"
-        PICARD_CMD="$PICARD_CMD OUTPUT=/tmp/output/$VALIDATION_REPORT"
-        
+        PICARD_CMD="$PICARD_CMD INPUT=$INPUT_FILE_PATH"
+
         # Add validation mode
         PICARD_CMD="$PICARD_CMD MODE=VERBOSE"
-        
+
         # Add validation stringency
         if [[ -n "$VALIDATION_STRINGENCY" ]]; then
             PICARD_CMD="$PICARD_CMD VALIDATION_STRINGENCY=$VALIDATION_STRINGENCY"
         fi
-        
+
         echo "🚀 Executing: $PICARD_CMD"
-        
-        # Execute the command
-        if eval "$PICARD_CMD"; then
-            echo "✅ Picard ValidateSamFile completed successfully"
-            
-            # Display output file info
-            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$VALIDATION_REPORT" 2>/dev/null || echo "unknown")
-            echo "📊 Validation report: $VALIDATION_REPORT ($OUTPUT_SIZE bytes)"
+
+        # Execute the command (allow non-zero exit for validation warnings)
+        if eval "$PICARD_CMD" 2>&1 | tee "/tmp/output/$VALIDATION_REPORT"; then
+            echo "✅ Picard ValidateSamFile completed"
         else
-            echo "❌ Picard ValidateSamFile failed"
-            exit 1
+            # ValidateSamFile may return non-zero for warnings, which is okay
+            echo "⚠️  Picard ValidateSamFile found validation issues (see report)"
         fi
+
+        # Always save the report
+        echo "📊 Validation report saved: $VALIDATION_REPORT"
+        ls -la /tmp/output/
         ;;
-        
-    "collect-metrics")
-        echo "📊 Running Picard CollectMultipleMetrics..."
-        
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input.bam"
-        
-        BASE_NAME=${BASE_NAME:-"metrics"}
-        
-        PICARD_CMD="picard CollectMultipleMetrics"
-        PICARD_CMD="$PICARD_CMD INPUT=/tmp/input.bam"
-        PICARD_CMD="$PICARD_CMD OUTPUT=/tmp/output/$BASE_NAME"
-        
+
+    "CollectAlignmentSummaryMetrics"|"CollectInsertSizeMetrics"|"CollectGcBiasMetrics"|"CollectSequencingArtifactMetrics"|"CollectQualityYieldMetrics"|"CollectRnaSeqMetrics"|"CollectTargetedPcrMetrics"|"CollectWgsMetrics"|"CollectHsMetrics"|"collect-metrics")
+        echo "📊 Running Picard $COMMAND..."
+
+        METRICS_FILE=${METRICS_FILE:-"metrics.txt"}
+
+        PICARD_CMD="picard $COMMAND"
+        PICARD_CMD="$PICARD_CMD INPUT=$INPUT_FILE_PATH"
+        PICARD_CMD="$PICARD_CMD OUTPUT=/tmp/output/$METRICS_FILE"
+
         # Add validation stringency
         if [[ -n "$VALIDATION_STRINGENCY" ]]; then
             PICARD_CMD="$PICARD_CMD VALIDATION_STRINGENCY=$VALIDATION_STRINGENCY"
         fi
-        
+
         # Add reference if provided
         if [[ -n "$REFERENCE_SEQUENCE" ]]; then
             PICARD_CMD="$PICARD_CMD REFERENCE_SEQUENCE=$REFERENCE_SEQUENCE"
         fi
-        
+
         echo "🚀 Executing: $PICARD_CMD"
-        
+
         # Execute the command
         if eval "$PICARD_CMD"; then
-            echo "✅ Picard CollectMultipleMetrics completed successfully"
-            
+            echo "✅ Picard $COMMAND completed successfully"
+
             # Display all generated metric files
             echo "📁 Generated metric files:"
             ls -la /tmp/output/
         else
-            echo "❌ Picard CollectMultipleMetrics failed"
+            echo "❌ Picard $COMMAND failed"
             exit 1
         fi
         ;;
-        
+
     *)
         echo "❌ Unsupported Picard command: $COMMAND"
-        echo "Supported commands: sort, mark-duplicates, merge, validate, collect-metrics"
+        echo "Supported commands: ValidateSamFile, SortSam, MarkDuplicates, MergeSamFiles, CollectAlignmentSummaryMetrics, CollectInsertSizeMetrics, and more"
         exit 1
         ;;
 esac
