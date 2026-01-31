@@ -26,26 +26,35 @@ INTERVALS=${INTERVALS:-""}
 THREADS=${THREADS:-"4"}
 MEMORY=${MEMORY:-"16g"}
 
-# Download reference genome if it uses @ notation
+# Find reference genome file
+# If REFERENCE_GENOME uses @ notation, find it in /tmp/input
 if [[ "$REFERENCE_GENOME" == @* ]]; then
     REF_S3_KEY="${REFERENCE_GENOME:1}"  # Remove @ prefix
     REF_FILENAME=$(basename "$REF_S3_KEY")
-    REF_LOCAL_PATH="/tmp/reference/$REF_FILENAME"
 
-    echo "📥 Downloading reference genome from S3: $REF_S3_KEY"
-    mkdir -p /tmp/reference
-
-    if ! aws s3 cp "s3://$S3_BUCKET/test-data/input/$REF_S3_KEY" "$REF_LOCAL_PATH" --no-progress; then
-        echo "❌ Failed to download reference genome from S3"
+    # Look for the file in /tmp/input (it should have been downloaded already)
+    if [[ -f "/tmp/input/$REF_S3_KEY" ]]; then
+        REFERENCE_GENOME="/tmp/input/$REF_S3_KEY"
+        echo "✅ Found reference genome: $REFERENCE_GENOME"
+    elif [[ -f "/tmp/input/$REF_FILENAME" ]]; then
+        REFERENCE_GENOME="/tmp/input/$REF_FILENAME"
+        echo "✅ Found reference genome: $REFERENCE_GENOME"
+    else
+        echo "❌ Reference genome not found: $REF_S3_KEY"
+        echo "Available files in /tmp/input:"
+        ls -lah /tmp/input/
         exit 1
     fi
-
-    # Download reference index files (.fai and .dict)
-    aws s3 cp "s3://$S3_BUCKET/test-data/input/${REF_S3_KEY}.fai" "${REF_LOCAL_PATH}.fai" --no-progress 2>/dev/null || echo "⚠️ No .fai index found"
-    aws s3 cp "s3://$S3_BUCKET/test-data/input/${REF_S3_KEY%.fasta}.dict" "${REF_LOCAL_PATH%.fasta}.dict" --no-progress 2>/dev/null || echo "⚠️ No .dict file found"
-
-    echo "✅ Reference genome downloaded: $REF_LOCAL_PATH"
-    REFERENCE_GENOME="$REF_LOCAL_PATH"
+elif [[ -z "$REFERENCE_GENOME" ]]; then
+    # If no reference specified, try to auto-detect .fasta/.fa files
+    FASTA_FILES=(/tmp/input/*.fasta /tmp/input/*.fa /tmp/input/*/*.fasta /tmp/input/*/*.fa)
+    for f in "${FASTA_FILES[@]}"; do
+        if [[ -f "$f" ]]; then
+            REFERENCE_GENOME="$f"
+            echo "✅ Auto-detected reference genome: $REFERENCE_GENOME"
+            break
+        fi
+    done
 fi
 
 # GATK-specific parameters
