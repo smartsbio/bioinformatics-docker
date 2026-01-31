@@ -72,6 +72,32 @@ case "$COMMAND" in
             exit 1
         fi
 
+        # Create FASTA index if it doesn't exist
+        if [[ ! -f "${REFERENCE_GENOME}.fai" ]]; then
+            echo "🔧 Creating FASTA index for reference genome..."
+            if ! samtools faidx "$REFERENCE_GENOME"; then
+                echo "❌ Failed to create FASTA index"
+                exit 1
+            fi
+            echo "✅ FASTA index created successfully"
+        else
+            echo "✅ FASTA index already exists"
+        fi
+
+        # Create sequence dictionary if it doesn't exist (.dict file)
+        DICT_FILE="${REFERENCE_GENOME%.fasta}.dict"
+        DICT_FILE="${DICT_FILE%.fa}.dict"
+        if [[ ! -f "$DICT_FILE" ]]; then
+            echo "🔧 Creating sequence dictionary for reference genome..."
+            if ! samtools dict "$REFERENCE_GENOME" -o "$DICT_FILE"; then
+                echo "⚠️ Failed to create sequence dictionary (continuing anyway)"
+            else
+                echo "✅ Sequence dictionary created successfully"
+            fi
+        else
+            echo "✅ Sequence dictionary already exists"
+        fi
+
         # Check if input is SAM or BAM, convert if necessary
         INPUT_BAM="/tmp/input.bam"
         if [[ "$INPUT_FILENAME" == *.sam ]]; then
