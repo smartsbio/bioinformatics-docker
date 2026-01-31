@@ -103,9 +103,22 @@ case "$COMMAND" in
         INPUT_BAM="/tmp/input.bam"
         if [[ "$INPUT_FILENAME" == *.sam ]]; then
             echo "📝 Converting SAM to BAM format..."
-            if ! samtools view -b -o "$INPUT_BAM" "$INPUT_FILE_PATH"; then
-                echo "❌ Failed to convert SAM to BAM"
-                exit 1
+
+            # Check if SAM has read group information
+            if samtools view -H "$INPUT_FILE_PATH" | grep -q "^@RG"; then
+                echo "✅ SAM file has read group information"
+                if ! samtools view -b -o "$INPUT_BAM" "$INPUT_FILE_PATH"; then
+                    echo "❌ Failed to convert SAM to BAM"
+                    exit 1
+                fi
+            else
+                echo "⚠️ SAM file missing read groups, adding default read group..."
+                # Add read group during conversion
+                if ! samtools view -b "$INPUT_FILE_PATH" | \
+                     samtools addreplacerg -r '@RG\tID:1\tSM:sample\tPL:ILLUMINA\tLB:lib1\tPU:unit1' -o "$INPUT_BAM" -; then
+                    echo "❌ Failed to convert SAM to BAM with read groups"
+                    exit 1
+                fi
             fi
             echo "✅ SAM to BAM conversion completed"
         elif [[ "$INPUT_FILENAME" == *.bam ]]; then
