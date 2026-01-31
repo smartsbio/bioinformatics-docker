@@ -7,13 +7,14 @@ set -e
 echo "🧬 HISAT2 Handler Started"
 
 # Get the input file (should be downloaded already)
-INPUT_FILES=(/tmp/input/*)
-if [[ ${#INPUT_FILES[@]} -eq 0 ]]; then
+# Use find to locate files in subdirectories (handles nested folder structures)
+INPUT_FILE_PATH=$(find /tmp/input -type f | head -n 1)
+
+if [[ -z "$INPUT_FILE_PATH" ]]; then
     echo "❌ No input files found in /tmp/input/"
     exit 1
 fi
 
-INPUT_FILE_PATH="${INPUT_FILES[0]}"
 INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 
 echo "📁 Processing file: $INPUT_FILENAME"
@@ -44,8 +45,18 @@ case "$COMMAND" in
     "build")
         echo "📇 Running HISAT2 index building..."
 
+        # Find reference genome file (prefer .fasta or .fa files)
+        REFERENCE_FILE=$(find /tmp/input -type f \( -name "*.fasta" -o -name "*.fa" \) | head -n 1)
+
+        if [[ -z "$REFERENCE_FILE" ]]; then
+            echo "⚠️  No .fasta or .fa file found, using first available file"
+            REFERENCE_FILE="$INPUT_FILE_PATH"
+        fi
+
+        echo "📚 Using reference file: $(basename $REFERENCE_FILE)"
+
         # Copy input file (reference genome)
-        cp "$INPUT_FILE_PATH" "/tmp/reference.fasta"
+        cp "$REFERENCE_FILE" "/tmp/reference.fasta"
 
         HISAT2_BUILD_CMD="hisat2-build"
         HISAT2_BUILD_CMD="$HISAT2_BUILD_CMD -p $THREADS"

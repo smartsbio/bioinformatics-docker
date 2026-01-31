@@ -7,13 +7,14 @@ set -e
 echo "🧬 ANNOVAR Handler Started"
 
 # Get the input file (should be downloaded already)
-INPUT_FILES=(/tmp/input/*)
-if [[ ${#INPUT_FILES[@]} -eq 0 ]]; then
+# Use find to locate files in subdirectories (handles nested folder structures)
+INPUT_FILE_PATH=$(find /tmp/input -type f | head -n 1)
+
+if [[ -z "$INPUT_FILE_PATH" ]]; then
     echo "❌ No input files found in /tmp/input/"
     exit 1
 fi
 
-INPUT_FILE_PATH="${INPUT_FILES[0]}"
 INPUT_FILENAME=$(basename "$INPUT_FILE_PATH")
 
 echo "📁 Processing file: $INPUT_FILENAME"

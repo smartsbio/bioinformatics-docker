@@ -672,10 +672,10 @@ extract_archive() {
 # MAIN PROCESSING LOGIC
 # ==========================================
 
-# Get input files
-INPUT_FILES=(/tmp/input/*)
+# Get input files (recursively to handle subdirectories)
+mapfile -t INPUT_FILES < <(find /tmp/input -type f)
 
-if [ ${#INPUT_FILES[@]} -eq 0 ] || [ ! -e "${INPUT_FILES[0]}" ]; then
+if [ ${#INPUT_FILES[@]} -eq 0 ]; then
     echo "❌ Error: No input files found in /tmp/input/"
     exit 1
 fi

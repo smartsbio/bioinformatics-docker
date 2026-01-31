@@ -21,8 +21,8 @@ case "$COMMAND" in
     "compress")
         echo "🗜️ Running compression operation..."
 
-        # Get all input files
-        INPUT_FILES=(/tmp/input/*)
+        # Get all input files (recursively to handle subdirectories)
+        mapfile -t INPUT_FILES < <(find /tmp/input -type f -o -type d -mindepth 1 -maxdepth 1)
         if [[ ${#INPUT_FILES[@]} -eq 0 ]]; then
             echo "❌ No input files found in /tmp/input/"
             exit 1
@@ -280,14 +280,12 @@ case "$COMMAND" in
     "decompress")
         echo "📂 Running decompression operation..."
 
-        # Get input file
-        INPUT_FILES=(/tmp/input/*)
-        if [[ ${#INPUT_FILES[@]} -eq 0 ]]; then
+        # Get input file (find first file in subdirectories)
+        INPUT_FILE=$(find /tmp/input -type f | head -n 1)
+        if [[ -z "$INPUT_FILE" ]]; then
             echo "❌ No input files found in /tmp/input/"
             exit 1
         fi
-
-        INPUT_FILE="${INPUT_FILES[0]}"
         INPUT_FILENAME=$(basename "$INPUT_FILE")
 
         echo "📁 Decompressing file: $INPUT_FILENAME"
@@ -549,14 +547,12 @@ case "$COMMAND" in
     "list")
         echo "📋 Listing archive contents..."
 
-        # Get input file
-        INPUT_FILES=(/tmp/input/*)
-        if [[ ${#INPUT_FILES[@]} -eq 0 ]]; then
+        # Get input file (find first file in subdirectories)
+        INPUT_FILE=$(find /tmp/input -type f | head -n 1)
+        if [[ -z "$INPUT_FILE" ]]; then
             echo "❌ No input files found in /tmp/input/"
             exit 1
         fi
-
-        INPUT_FILE="${INPUT_FILES[0]}"
         INPUT_FILENAME=$(basename "$INPUT_FILE")
 
         echo "📁 Archive: $INPUT_FILENAME"
