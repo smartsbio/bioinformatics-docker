@@ -72,23 +72,39 @@ case "$COMMAND" in
             exit 1
         fi
 
-        # Copy input BAM file
-        cp "$INPUT_FILE_PATH" "/tmp/input.bam"
-
-        # Download BAM index file if it exists in S3
-        INPUT_BAM_INDEX="${INPUT_FILE_PATH}.bai"
-        if aws s3 ls "s3://$S3_BUCKET/test-data/input/${INPUT_FILENAME}.bai" 2>/dev/null; then
-            echo "📥 Downloading BAM index file..."
-            aws s3 cp "s3://$S3_BUCKET/test-data/input/${INPUT_FILENAME}.bai" "/tmp/input.bam.bai" --no-progress || echo "⚠️ Could not download BAM index"
+        # Check if input is SAM or BAM, convert if necessary
+        INPUT_BAM="/tmp/input.bam"
+        if [[ "$INPUT_FILENAME" == *.sam ]]; then
+            echo "📝 Converting SAM to BAM format..."
+            if ! samtools view -b -o "$INPUT_BAM" "$INPUT_FILE_PATH"; then
+                echo "❌ Failed to convert SAM to BAM"
+                exit 1
+            fi
+            echo "✅ SAM to BAM conversion completed"
+        elif [[ "$INPUT_FILENAME" == *.bam ]]; then
+            echo "📝 Input is already in BAM format, copying..."
+            cp "$INPUT_FILE_PATH" "$INPUT_BAM"
         else
-            echo "⚠️ No BAM index found, creating index with samtools..."
-            samtools index "/tmp/input.bam"
+            echo "⚠️ Unknown input format (expected .sam or .bam), attempting to use as-is..."
+            cp "$INPUT_FILE_PATH" "$INPUT_BAM"
+        fi
+
+        # Create BAM index
+        if [[ -f "${INPUT_BAM}.bai" ]]; then
+            echo "✅ BAM index already exists"
+        else
+            echo "🔧 Creating BAM index with samtools..."
+            if ! samtools index "$INPUT_BAM"; then
+                echo "❌ Failed to create BAM index"
+                exit 1
+            fi
+            echo "✅ BAM index created successfully"
         fi
 
         GATK_CMD="gatk HaplotypeCaller"
 
         # Add input and reference
-        GATK_CMD="$GATK_CMD -I /tmp/input.bam"
+        GATK_CMD="$GATK_CMD -I $INPUT_BAM"
         GATK_CMD="$GATK_CMD -R $REFERENCE_GENOME"
         GATK_CMD="$GATK_CMD -O /tmp/output/$OUTPUT_FILE"
 
