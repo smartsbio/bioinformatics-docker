@@ -34,19 +34,49 @@ mkdir -p /tmp/input /tmp/output
 
 echo "📥 Downloading input files..."
 
-# Download input file from S3
-if [[ -n "$INPUT_S3_KEY" ]]; then
+# Check if we have multiple input files (INPUT_FILES_JSON) or single file (INPUT_S3_KEY)
+if [[ -n "$INPUT_FILES_JSON" ]] && [[ "$INPUT_FILES_JSON" != "[]" ]]; then
+    echo "📦 Multiple input files detected"
+
+    # Parse JSON array and download each file
+    # Using jq to parse JSON safely
+    if ! command -v jq &> /dev/null; then
+        echo "❌ jq not found, cannot parse INPUT_FILES_JSON"
+        exit 1
+    fi
+
+    # Count files
+    FILE_COUNT=$(echo "$INPUT_FILES_JSON" | jq '. | length')
+    echo "📊 Downloading $FILE_COUNT file(s)..."
+
+    # Download each file
+    for i in $(seq 0 $((FILE_COUNT - 1))); do
+        S3_KEY=$(echo "$INPUT_FILES_JSON" | jq -r ".[$i].s3Key")
+        FILENAME=$(echo "$INPUT_FILES_JSON" | jq -r ".[$i].filename")
+
+        echo "📥 Downloading ($((i+1))/$FILE_COUNT): s3://$S3_BUCKET/$S3_KEY -> /tmp/input/$FILENAME"
+
+        if ! aws s3 cp "s3://$S3_BUCKET/$S3_KEY" "/tmp/input/$FILENAME" --no-progress; then
+            echo "❌ Failed to download file: $S3_KEY"
+            exit 1
+        fi
+    done
+
+    echo "✅ All $FILE_COUNT input file(s) downloaded successfully"
+
+elif [[ -n "$INPUT_S3_KEY" ]]; then
+    # Fallback to single file download (backward compatibility)
     INPUT_FILENAME=$(basename "$INPUT_S3_KEY")
     echo "📥 Downloading: s3://$S3_BUCKET/$INPUT_S3_KEY -> /tmp/input/$INPUT_FILENAME"
-    
+
     if ! aws s3 cp "s3://$S3_BUCKET/$INPUT_S3_KEY" "/tmp/input/$INPUT_FILENAME" --no-progress; then
         echo "❌ Failed to download input file from S3"
         exit 1
     fi
-    
+
     echo "✅ Input file downloaded successfully"
 else
-    echo "❌ No input file specified"
+    echo "❌ No input file specified (INPUT_FILES_JSON or INPUT_S3_KEY required)"
     exit 1
 fi
 
