@@ -30,13 +30,28 @@ if [[ -n "$INPUT_S3_KEY" ]]; then
 fi
 
 # Parse additional parameters from environment
-OUTPUT_FILE=${OUTPUT_FILE:-"output.sam"}
-# Strip @ notation from output file path
-OUTPUT_FILE="${OUTPUT_FILE#@}"
 THREADS=${THREADS:-"4"}
 REFERENCE_GENOME=${REFERENCE_GENOME:-""}
 PRESET=${PRESET:-"sensitive"}
 ALIGNMENT_MODE=${ALIGNMENT_MODE:-"end-to-end"}
+
+# Set command-specific default output filenames
+if [[ -z "$OUTPUT_FILE" ]]; then
+    case "$COMMAND" in
+        "inspect")
+            OUTPUT_FILE="reference_sequences.fasta"
+            ;;
+        "build")
+            OUTPUT_FILE="index"  # Not used, but set for consistency
+            ;;
+        *)
+            OUTPUT_FILE="output.sam"
+            ;;
+    esac
+fi
+
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 
 # Bowtie2-specific parameters
 MAX_INSERT_SIZE=${MAX_INSERT_SIZE:-"500"}

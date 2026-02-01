@@ -30,14 +30,29 @@ if [[ -n "$INPUT_S3_KEY" ]]; then
 fi
 
 # Parse additional parameters from environment
-OUTPUT_FILE=${OUTPUT_FILE:-"corrected_reads.fastq"}
-# Strip @ notation from output file path
-OUTPUT_FILE="${OUTPUT_FILE#@}"
 KMER_SIZE=${KMER_SIZE:-"21"}
 MIN_COUNT=${MIN_COUNT:-"2"}
 CACHE_SIZE=${CACHE_SIZE:-"8"}
 THREADS=${THREADS:-"4"}
 SHORT_READS_FILE=${SHORT_READS_FILE:-""}
+
+# Set command-specific default output filenames
+if [[ -z "$OUTPUT_FILE" ]]; then
+    case "$COMMAND" in
+        "convert")
+            OUTPUT_FILE="index.fmlrc"
+            ;;
+        "correct"|"batch-correct")
+            OUTPUT_FILE="corrected_reads.fastq"
+            ;;
+        *)
+            OUTPUT_FILE="output.txt"
+            ;;
+    esac
+fi
+
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 
 # Create subdirectories in output path if needed
 OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
@@ -125,14 +140,26 @@ case "$COMMAND" in
         echo "🔄 Running FMLRC convert (short reads preprocessing)..."
 
         # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/short_reads.fastq"
+        cp "$INPUT_FILE_PATH" "/tmp/input_reads"
 
         # Extract raw sequences (fmlrc-convert requires raw DNA bases only, no headers)
-        echo "📊 Extracting raw sequences from FASTQ..."
-        # Use awk to extract only sequence lines (every 2nd line starting from line 2)
-        if ! awk 'NR%4==2' /tmp/short_reads.fastq > /tmp/short_reads_raw.txt; then
-            echo "❌ Raw sequence extraction failed"
-            exit 1
+        if [[ "$INPUT_FILENAME" == *.fastq ]] || [[ "$INPUT_FILENAME" == *.fq ]]; then
+            echo "📊 Extracting raw sequences from FASTQ..."
+            # Use awk to extract only sequence lines (every 2nd line starting from line 2)
+            if ! awk 'NR%4==2' /tmp/input_reads > /tmp/short_reads_raw.txt; then
+                echo "❌ Raw sequence extraction failed"
+                exit 1
+            fi
+        elif [[ "$INPUT_FILENAME" == *.fa ]] || [[ "$INPUT_FILENAME" == *.fasta ]]; then
+            echo "📊 Extracting raw sequences from FASTA..."
+            # Use grep to get only sequence lines (not header lines starting with >)
+            if ! grep -v '^>' /tmp/input_reads > /tmp/short_reads_raw.txt; then
+                echo "❌ Raw sequence extraction failed"
+                exit 1
+            fi
+        else
+            echo "⚠️  Unknown file format, assuming raw sequences"
+            cp /tmp/input_reads /tmp/short_reads_raw.txt
         fi
         echo "✅ Extracted raw sequences"
 

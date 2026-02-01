@@ -30,9 +30,6 @@ if [[ -n "$INPUT_S3_KEY" ]]; then
 fi
 
 # Parse additional parameters from environment
-OUTPUT_FILE=${OUTPUT_FILE:-"aligned_reads.sam"}
-# Strip @ notation from output file path
-OUTPUT_FILE="${OUTPUT_FILE#@}"
 INDEX_PREFIX=${INDEX_PREFIX:-"reference_index"}
 THREADS=${THREADS:-"4"}
 PHRED_QUALITY=${PHRED_QUALITY:-"phred33"}
@@ -40,6 +37,27 @@ STRANDNESS=${STRANDNESS:-""}
 MAX_INTRON_LENGTH=${MAX_INTRON_LENGTH:-"500000"}
 MIN_INTRON_LENGTH=${MIN_INTRON_LENGTH:-"20"}
 REFERENCE_GENOME=${REFERENCE_GENOME:-""}
+
+# Set command-specific default output filenames
+if [[ -z "$OUTPUT_FILE" ]]; then
+    case "$COMMAND" in
+        "extract-splicesites")
+            OUTPUT_FILE="splicesites.txt"
+            ;;
+        "extract-exons")
+            OUTPUT_FILE="exons.txt"
+            ;;
+        "build")
+            OUTPUT_FILE="index"  # Not used, but set for consistency
+            ;;
+        *)
+            OUTPUT_FILE="aligned_reads.sam"
+            ;;
+    esac
+fi
+
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 
 case "$COMMAND" in
     "build")
@@ -225,15 +243,15 @@ case "$COMMAND" in
 
         EXTRACT_CMD="hisat2_extract_splice_sites.py"
         EXTRACT_CMD="$EXTRACT_CMD /tmp/annotation.gtf"
-        EXTRACT_CMD="$EXTRACT_CMD > /tmp/output/splicesites.txt"
+        EXTRACT_CMD="$EXTRACT_CMD > /tmp/output/$OUTPUT_FILE"
 
         echo "🚀 Executing: $EXTRACT_CMD"
 
         if eval "$EXTRACT_CMD"; then
             echo "✅ Splice site extraction completed successfully"
 
-            OUTPUT_SIZE=$(stat -c%s "/tmp/output/splicesites.txt" 2>/dev/null || stat -f%z "/tmp/output/splicesites.txt" 2>/dev/null || echo "unknown")
-            echo "📊 Splice sites: splicesites.txt ($OUTPUT_SIZE bytes)"
+            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || stat -f%z "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
+            echo "📊 Splice sites: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
         else
             echo "❌ Splice site extraction failed"
             exit 1
@@ -248,15 +266,15 @@ case "$COMMAND" in
 
         EXTRACT_CMD="hisat2_extract_exons.py"
         EXTRACT_CMD="$EXTRACT_CMD /tmp/annotation.gtf"
-        EXTRACT_CMD="$EXTRACT_CMD > /tmp/output/exons.txt"
+        EXTRACT_CMD="$EXTRACT_CMD > /tmp/output/$OUTPUT_FILE"
 
         echo "🚀 Executing: $EXTRACT_CMD"
 
         if eval "$EXTRACT_CMD"; then
             echo "✅ Exon extraction completed successfully"
 
-            OUTPUT_SIZE=$(stat -c%s "/tmp/output/exons.txt" 2>/dev/null || stat -f%z "/tmp/output/exons.txt" 2>/dev/null || echo "unknown")
-            echo "📊 Exons: exons.txt ($OUTPUT_SIZE bytes)"
+            OUTPUT_SIZE=$(stat -c%s "/tmp/output/$OUTPUT_FILE" 2>/dev/null || stat -f%z "/tmp/output/$OUTPUT_FILE" 2>/dev/null || echo "unknown")
+            echo "📊 Exons: $OUTPUT_FILE ($OUTPUT_SIZE bytes)"
         else
             echo "❌ Exon extraction failed"
             exit 1

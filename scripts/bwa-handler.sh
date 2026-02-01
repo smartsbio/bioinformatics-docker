@@ -30,13 +30,28 @@ if [[ -n "$INPUT_S3_KEY" ]]; then
 fi
 
 # Parse additional parameters from environment
-OUTPUT_FILE=${OUTPUT_FILE:-"output.sam"}
-# Strip @ notation from output file path
-OUTPUT_FILE="${OUTPUT_FILE#@}"
 THREADS=${THREADS:-"4"}
 REFERENCE_GENOME=${REFERENCE_GENOME:-""}
 ALGORITHM=${ALGORITHM:-"mem"}
 INDEX_ALGORITHM=${INDEX_ALGORITHM:-"bwtsw"}
+
+# Set command-specific default output filenames
+if [[ -z "$OUTPUT_FILE" ]]; then
+    case "$COMMAND" in
+        "aln")
+            OUTPUT_FILE="alignment.sai"
+            ;;
+        "index")
+            OUTPUT_FILE="index"  # Not used, but set for consistency
+            ;;
+        *)
+            OUTPUT_FILE="output.sam"
+            ;;
+    esac
+fi
+
+# Strip @ notation from output file path
+OUTPUT_FILE="${OUTPUT_FILE#@}"
 
 # BWA-specific parameters
 MIN_SEED_LENGTH=${MIN_SEED_LENGTH:-"19"}
