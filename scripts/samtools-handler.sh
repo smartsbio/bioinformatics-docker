@@ -77,9 +77,16 @@ case "$COMMAND" in
         if [[ -n "$FLAGS" ]]; then
             SAMTOOLS_CMD="$SAMTOOLS_CMD $FLAGS"
         fi
-        
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         echo "🚀 Executing: $SAMTOOLS_CMD > /tmp/output/$OUTPUT_FILE"
-        
+
         # Execute the command
         if eval "$SAMTOOLS_CMD > /tmp/output/$OUTPUT_FILE"; then
             echo "✅ SAMtools view completed successfully"
@@ -107,9 +114,16 @@ case "$COMMAND" in
         if [[ -n "$COMPRESSION_LEVEL" ]]; then
             SAMTOOLS_CMD="$SAMTOOLS_CMD -l $COMPRESSION_LEVEL"
         fi
-        
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         SAMTOOLS_CMD="$SAMTOOLS_CMD $INPUT_FILE_PATH -o /tmp/output/$OUTPUT_FILE"
-        
+
         echo "🚀 Executing: $SAMTOOLS_CMD"
         
         if eval "$SAMTOOLS_CMD"; then
@@ -122,7 +136,14 @@ case "$COMMAND" in
         
     "index")
         echo "📇 Running SAMtools index command..."
-        
+
+        # Create subdirectories in output path if needed
+        OUTPUT_DIR=$(dirname "/tmp/output/$INPUT_FILENAME")
+        if [[ "$OUTPUT_DIR" != "/tmp/output" ]]; then
+            mkdir -p "$OUTPUT_DIR"
+            echo "📁 Created output directory: $OUTPUT_DIR"
+        fi
+
         # For indexing, we need to work with the file in place
         cp "$INPUT_FILE_PATH" "/tmp/output/$INPUT_FILENAME"
         
