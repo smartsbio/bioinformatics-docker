@@ -75,6 +75,18 @@ elif [[ -n "$INPUT_S3_KEY" ]]; then
     fi
 
     echo "✅ Input file downloaded successfully"
+
+    # Download secondary input file if provided (paired-end R2 FASTQ)
+    INPUT_S3_KEY_2=${INPUT_S3_KEY_2:-""}
+    if [[ -n "$INPUT_S3_KEY_2" ]]; then
+        INPUT_FILENAME_2=$(basename "$INPUT_S3_KEY_2")
+        echo "📥 Downloading R2: s3://$S3_BUCKET/$INPUT_S3_KEY_2 -> /tmp/input/$INPUT_FILENAME_2"
+        if ! aws s3 cp "s3://$S3_BUCKET/$INPUT_S3_KEY_2" "/tmp/input/$INPUT_FILENAME_2" --no-progress; then
+            echo "❌ Failed to download secondary input file from S3"
+            exit 1
+        fi
+        echo "✅ Secondary input file (R2) downloaded successfully"
+    fi
 else
     echo "❌ No input file specified (INPUT_FILES_JSON or INPUT_S3_KEY required)"
     exit 1

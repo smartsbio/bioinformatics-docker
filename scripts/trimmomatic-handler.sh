@@ -34,8 +34,8 @@ case "$COMMAND" in
     "single-end")
         echo "✂️ Running Trimmomatic single-end trimming..."
 
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input_reads.fastq"
+        # Use the input file directly (trimmomatic handles .fastq.gz natively)
+        OUTPUT_FILE="${OUTPUT_FILE:-"trimmed_reads.fastq.gz"}"
 
         TRIMMOMATIC_CMD="trimmomatic SE -phred33"
 
@@ -43,9 +43,9 @@ case "$COMMAND" in
         if [[ -n "$THREADS" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD -threads $THREADS"
         fi
-        
+
         # Add input and output files
-        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/input_reads.fastq /tmp/output/$OUTPUT_FILE"
+        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD $INPUT_FILE_PATH /tmp/output/$OUTPUT_FILE"
         
         # Add adapter trimming if specified
         if [[ -n "$ADAPTER_FILE" ]]; then
@@ -87,14 +87,31 @@ case "$COMMAND" in
     "paired-end")
         echo "✂️ Running Trimmomatic paired-end trimming..."
 
-        # Copy input files (assuming paired files)
-        cp "$INPUT_FILE_PATH" "/tmp/input_reads_R1.fastq"
-        # Note: In real implementation, we'd handle multiple input files properly
+        # R1: use the primary input file directly (preserves .gz extension for trimmomatic)
+        R1_FILE="$INPUT_FILE_PATH"
 
-        OUTPUT_FILE_R1=${OUTPUT_FILE_R1:-"trimmed_reads_R1.fastq"}
-        OUTPUT_FILE_R2=${OUTPUT_FILE_R2:-"trimmed_reads_R2.fastq"}
-        OUTPUT_FILE_UNPAIRED_R1=${OUTPUT_FILE_UNPAIRED_R1:-"trimmed_reads_unpaired_R1.fastq"}
-        OUTPUT_FILE_UNPAIRED_R2=${OUTPUT_FILE_UNPAIRED_R2:-"trimmed_reads_unpaired_R2.fastq"}
+        # R2: locate using INPUT_S3_KEY_2 filename, fall back to second file in /tmp/input
+        R2_FILE=""
+        if [[ -n "$INPUT_S3_KEY_2" ]]; then
+            R2_FILENAME=$(basename "$INPUT_S3_KEY_2")
+            R2_FILE=$(find /tmp/input -name "$R2_FILENAME" | head -n 1)
+        fi
+        if [[ -z "$R2_FILE" ]]; then
+            R2_FILE=$(find /tmp/input -type f ! -name "$(basename "$R1_FILE")" | head -n 1)
+        fi
+        if [[ -z "$R2_FILE" ]]; then
+            echo "❌ No R2 input file found for paired-end processing"
+            exit 1
+        fi
+
+        echo "📁 R1: $(basename "$R1_FILE")"
+        echo "📁 R2: $(basename "$R2_FILE")"
+
+        # Output file names — use OUTPUT_FILE / OUTPUT_FILE_2 env vars from ECS
+        OUTPUT_R1="${OUTPUT_FILE:-"trimmed_reads_R1.fastq.gz"}"
+        OUTPUT_R2="${OUTPUT_FILE_2:-"trimmed_reads_R2.fastq.gz"}"
+        OUTPUT_UNPAIRED_R1="unpaired_${OUTPUT_R1}"
+        OUTPUT_UNPAIRED_R2="unpaired_${OUTPUT_R2}"
 
         TRIMMOMATIC_CMD="trimmomatic PE -phred33"
 
@@ -102,40 +119,40 @@ case "$COMMAND" in
         if [[ -n "$THREADS" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD -threads $THREADS"
         fi
-        
-        # Add input and output files
-        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/input_reads_R1.fastq /tmp/input_reads_R2.fastq"
-        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/output/$OUTPUT_FILE_R1 /tmp/output/$OUTPUT_FILE_UNPAIRED_R1"
-        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/output/$OUTPUT_FILE_R2 /tmp/output/$OUTPUT_FILE_UNPAIRED_R2"
-        
+
+        # Input and output files (trimmomatic handles .fastq.gz natively)
+        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD $R1_FILE $R2_FILE"
+        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/output/$OUTPUT_R1 /tmp/output/$OUTPUT_UNPAIRED_R1"
+        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/output/$OUTPUT_R2 /tmp/output/$OUTPUT_UNPAIRED_R2"
+
         # Add adapter trimming if specified
         if [[ -n "$ADAPTER_FILE" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD ILLUMINACLIP:$ADAPTER_FILE:2:30:10"
         fi
-        
+
         # Add quality trimming parameters
         if [[ -n "$LEADING" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD LEADING:$LEADING"
         fi
-        
+
         if [[ -n "$TRAILING" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD TRAILING:$TRAILING"
         fi
-        
+
         if [[ -n "$SLIDING_WINDOW" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD SLIDINGWINDOW:$SLIDING_WINDOW"
         fi
-        
-        if [[ -n "$MIN_LENGTH" ]]; then
+
+        if [[ -n "$MIN_LENGTH" && "$MIN_LENGTH" != "0" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD MINLEN:$MIN_LENGTH"
         fi
-        
+
         echo "🚀 Executing: $TRIMMOMATIC_CMD"
-        
+
         # Execute the command
         if eval "$TRIMMOMATIC_CMD"; then
             echo "✅ Trimmomatic paired-end trimming completed successfully"
-            
+
             # Display output file info
             echo "📁 Generated files:"
             ls -la /tmp/output/
@@ -148,8 +165,8 @@ case "$COMMAND" in
     "quality-trim")
         echo "✂️ Running Trimmomatic quality-only trimming..."
 
-        # Copy input file
-        cp "$INPUT_FILE_PATH" "/tmp/input_reads.fastq"
+        # Use the input file directly (trimmomatic handles .fastq.gz natively)
+        OUTPUT_FILE="${OUTPUT_FILE:-"trimmed_reads.fastq.gz"}"
 
         TRIMMOMATIC_CMD="trimmomatic SE -phred33"
 
@@ -157,9 +174,9 @@ case "$COMMAND" in
         if [[ -n "$THREADS" ]]; then
             TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD -threads $THREADS"
         fi
-        
+
         # Add input and output files
-        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD /tmp/input_reads.fastq /tmp/output/$OUTPUT_FILE"
+        TRIMMOMATIC_CMD="$TRIMMOMATIC_CMD $INPUT_FILE_PATH /tmp/output/$OUTPUT_FILE"
         
         # Quality-only trimming (no adapter removal)
         if [[ -n "$QUALITY_THRESHOLD" ]]; then
