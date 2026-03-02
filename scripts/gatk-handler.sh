@@ -27,13 +27,22 @@ INTERVALS=${INTERVALS:-""}
 THREADS=${THREADS:-"4"}
 MEMORY=${MEMORY:-"16g"}
 
+# Extract organization and workspace IDs from INPUT_S3_KEY
+# Format: organizations/{orgId}/workspaces/{workspaceId}/files/{path}
+if [[ -n "$INPUT_S3_KEY" ]]; then
+    ORGANIZATION_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f2)
+    WORKSPACE_ID=$(echo "$INPUT_S3_KEY" | cut -d'/' -f4)
+    echo "📂 Organization ID: $ORGANIZATION_ID"
+    echo "📂 Workspace ID: $WORKSPACE_ID"
+fi
+
 # Find reference genome file
-# If REFERENCE_GENOME uses @ notation, find it in /tmp/input
+# If REFERENCE_GENOME uses @ notation, find or download it
 if [[ "$REFERENCE_GENOME" == @* ]]; then
     REF_S3_KEY="${REFERENCE_GENOME:1}"  # Remove @ prefix
     REF_FILENAME=$(basename "$REF_S3_KEY")
 
-    # Look for the file in /tmp/input (it should have been downloaded already)
+    # Look for the file in /tmp/input (it may have been downloaded already)
     if [[ -f "/tmp/input/$REF_S3_KEY" ]]; then
         REFERENCE_GENOME="/tmp/input/$REF_S3_KEY"
         echo "✅ Found reference genome: $REFERENCE_GENOME"
@@ -41,10 +50,38 @@ if [[ "$REFERENCE_GENOME" == @* ]]; then
         REFERENCE_GENOME="/tmp/input/$REF_FILENAME"
         echo "✅ Found reference genome: $REFERENCE_GENOME"
     else
-        echo "❌ Reference genome not found: $REF_S3_KEY"
-        echo "Available files in /tmp/input:"
-        ls -lah /tmp/input/
-        exit 1
+        # Not found locally — download from S3 using the @ workspace notation
+        echo "📥 Reference genome not in /tmp/input, downloading from S3..."
+        if [[ -n "$ORGANIZATION_ID" && -n "$WORKSPACE_ID" ]]; then
+            FULL_REF_S3_KEY="organizations/${ORGANIZATION_ID}/workspaces/${WORKSPACE_ID}/files/${REF_S3_KEY}"
+            TARGET_DIR=$(dirname "/tmp/input/$REF_S3_KEY")
+            mkdir -p "$TARGET_DIR"
+            echo "📥 Downloading: s3://${S3_BUCKET}/${FULL_REF_S3_KEY} -> /tmp/input/${REF_S3_KEY}"
+            if aws s3 cp "s3://${S3_BUCKET}/${FULL_REF_S3_KEY}" "/tmp/input/${REF_S3_KEY}" --no-progress; then
+                REFERENCE_GENOME="/tmp/input/$REF_S3_KEY"
+                echo "✅ Reference genome downloaded: $REFERENCE_GENOME"
+
+                # Try to download pre-built .fai index (skips samtools faidx at runtime)
+                if aws s3 cp "s3://${S3_BUCKET}/${FULL_REF_S3_KEY}.fai" "/tmp/input/${REF_S3_KEY}.fai" --no-progress 2>/dev/null; then
+                    echo "✅ Reference .fai index downloaded"
+                fi
+
+                # Try to download pre-built .dict file (skips samtools dict at runtime)
+                DICT_S3_KEY="${FULL_REF_S3_KEY%.*}.dict"
+                DICT_LOCAL="${REF_S3_KEY%.*}.dict"
+                if aws s3 cp "s3://${S3_BUCKET}/${DICT_S3_KEY}" "/tmp/input/${DICT_LOCAL}" --no-progress 2>/dev/null; then
+                    echo "✅ Reference .dict file downloaded"
+                fi
+            else
+                echo "❌ Failed to download reference genome from S3"
+                exit 1
+            fi
+        else
+            echo "❌ Reference genome not found and cannot determine S3 location"
+            echo "Available files in /tmp/input:"
+            ls -lah /tmp/input/
+            exit 1
+        fi
     fi
 elif [[ -z "$REFERENCE_GENOME" ]]; then
     # If no reference specified, try to auto-detect .fasta/.fa files
@@ -125,6 +162,20 @@ case "$COMMAND" in
         elif [[ "$INPUT_FILENAME" == *.bam ]]; then
             echo "📝 Input is already in BAM format, copying..."
             cp "$INPUT_FILE_PATH" "$INPUT_BAM"
+
+            # Check if BAM has read group information (required by GATK HaplotypeCaller)
+            if ! samtools view -H "$INPUT_BAM" | grep -q "^@RG"; then
+                echo "⚠️ BAM file missing read groups, adding default read group..."
+                TEMP_BAM="/tmp/input_with_rg.bam"
+                if ! samtools addreplacerg -r '@RG\tID:1\tSM:sample\tPL:ILLUMINA\tLB:lib1\tPU:unit1' -o "$TEMP_BAM" "$INPUT_BAM"; then
+                    echo "❌ Failed to add read groups to BAM"
+                    exit 1
+                fi
+                mv "$TEMP_BAM" "$INPUT_BAM"
+                echo "✅ Read groups added successfully"
+            else
+                echo "✅ BAM file has read group information"
+            fi
         else
             echo "⚠️ Unknown input format (expected .sam or .bam), attempting to use as-is..."
             cp "$INPUT_FILE_PATH" "$INPUT_BAM"

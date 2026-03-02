@@ -156,10 +156,11 @@ case "$COMMAND" in
             echo "✅ BWA index already exists"
         fi
 
-        # Copy reads
-        cp "$INPUT_FILE_PATH" "/tmp/reads.fastq"
-
         BWA_CMD="bwa mem"
+
+        # Add read group information — required by GATK downstream tools (HaplotypeCaller, Mutect2)
+        SAMPLE_NAME="${SAMPLE_NAME:-sample}"
+        BWA_CMD="$BWA_CMD -R \"@RG\\tID:1\\tSM:${SAMPLE_NAME}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1\""
 
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
@@ -191,8 +192,24 @@ case "$COMMAND" in
             BWA_CMD="$BWA_CMD -B $MISMATCH_PENALTY"
         fi
 
-        # Add index and reads (use the built index path)
-        BWA_CMD="$BWA_CMD ${INDEX_BASE} /tmp/reads.fastq"
+        # Find R2 file for paired-end alignment
+        R2_FILE=""
+        if [[ -n "$INPUT_S3_KEY_2" ]]; then
+            R2_FILENAME=$(basename "$INPUT_S3_KEY_2")
+            R2_FILE=$(find /tmp/input -name "$R2_FILENAME" | head -n 1)
+        fi
+        if [[ -z "$R2_FILE" ]]; then
+            R2_FILE=$(find /tmp/input -type f ! -name "$(basename "$INPUT_FILE_PATH")" | head -n 1)
+        fi
+
+        # Add index and reads (pass files directly — bwa mem handles .fastq.gz natively)
+        if [[ -n "$R2_FILE" ]]; then
+            echo "📁 Paired-end mode: R1=$(basename "$INPUT_FILE_PATH") R2=$(basename "$R2_FILE")"
+            BWA_CMD="$BWA_CMD ${INDEX_BASE} $INPUT_FILE_PATH $R2_FILE"
+        else
+            echo "📁 Single-end mode: $(basename "$INPUT_FILE_PATH")"
+            BWA_CMD="$BWA_CMD ${INDEX_BASE} $INPUT_FILE_PATH"
+        fi
 
         # Create subdirectories in output path if needed
         OUTPUT_DIR=$(dirname "/tmp/output/$OUTPUT_FILE")
