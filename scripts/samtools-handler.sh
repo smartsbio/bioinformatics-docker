@@ -102,14 +102,22 @@ case "$COMMAND" in
         
     "sort")
         echo "🔄 Running SAMtools sort command..."
-        
+
+        # Limit memory per thread to prevent OOM on constrained Fargate instances.
+        # Default: 768M/thread (samtools default) × 9 threads = 6+ GB — far exceeds 2 GB Fargate limit.
+        # 128M × (8+1) threads = 1152 MB — safe within 2 GB.
+        SORT_MEMORY=${SORT_MEMORY:-"128M"}
+
         SAMTOOLS_CMD="samtools sort"
-        
+
         # Add threads parameter
         if [[ -n "$THREADS" ]]; then
             SAMTOOLS_CMD="$SAMTOOLS_CMD --threads $THREADS"
         fi
-        
+
+        # Cap memory per thread
+        SAMTOOLS_CMD="$SAMTOOLS_CMD -m $SORT_MEMORY"
+
         # Add compression level
         if [[ -n "$COMPRESSION_LEVEL" ]]; then
             SAMTOOLS_CMD="$SAMTOOLS_CMD -l $COMPRESSION_LEVEL"
